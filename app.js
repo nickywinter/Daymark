@@ -19,7 +19,6 @@ let selected=logKey;
 let store=JSON.parse(localStorage.getItem("habitV251"))||{};
 
 function k(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")}
-function p(key){const [y,m]=key.split("-").map(Number);return new Date(y,m-1,1)}
 function fmtDate(d){return d.getDate()+" "+M[d.getMonth()]+" "+d.getFullYear()}
 function esc(t){return String(t).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")}
 function clone(o){return JSON.parse(JSON.stringify(o))}
@@ -50,11 +49,9 @@ return true;
 function toggleHabit(name,day){
 const d=data();
 d.days[day]=d.days[day]||[];
-
 d.days[day]=d.days[day].includes(name)
 ?d.days[day].filter(x=>x!==name)
 :[...d.days[day],name];
-
 save();
 showToday();
 }
@@ -66,17 +63,30 @@ const day=logDate.getDate();
 
 let h=`<div class="card"><strong>Yesterday</strong><br>${fmtDate(logDate)}</div>`;
 
-d.habits.filter(x=>!x.archived && activeToday(x)).forEach(x=>{
+const personal=d.habits.filter(x=>!x.archived && x.type!=="work" && activeToday(x));
+const work=d.habits.filter(x=>!x.archived && x.type==="work" && activeToday(x));
 
+if(personal.length){
+h+=`<div class="section-title">PERSONAL</div>`;
+personal.forEach(x=>{
 const done=d.days[day]?.includes(x.name);
-
-h+=`
-<div class="habit" onclick='toggleHabit(${JSON.stringify(x.name)},${day})'>
+h+=`<div class="habit" onclick='toggleHabit(${JSON.stringify(x.name)},${day})'>
 <div class="dot ${done?"done":""}"></div>
 <div>${esc(x.name)}</div>
 </div>`;
-
 });
+}
+
+if(work.length){
+h+=`<div class="section-title">WORK</div>`;
+work.forEach(x=>{
+const done=d.days[day]?.includes(x.name);
+h+=`<div class="habit" onclick='toggleHabit(${JSON.stringify(x.name)},${day})'>
+<div class="dot ${done?"done":""}"></div>
+<div>${esc(x.name)}</div>
+</div>`;
+});
+}
 
 h+=`
 <div class="card">
@@ -112,13 +122,11 @@ const e=Object.keys(d.weight).sort((a,b)=>b-a);
 if(!e.length){
 h+=`<div class="muted">No weight entries yet.</div>`;
 }else{
-
 e.forEach(i=>{
 const dt=new Date(logDate);
 dt.setDate(Number(i));
 h+=`<div class="list-line">${fmtDate(dt)} : ${d.weight[i]} kg</div>`;
 });
-
 }
 
 h+=`</div>`;
@@ -135,29 +143,27 @@ const e=Object.keys(d.moments).sort((a,b)=>b-a);
 if(!e.length){
 h+=`<div class="muted">No memorable moments yet.</div>`;
 }else{
-
 e.forEach(i=>{
 const dt=new Date(logDate);
 dt.setDate(Number(i));
 h+=`<div class="list-line"><strong>${fmtDate(dt)}</strong><br>${esc(d.moments[i])}</div>`;
 });
-
 }
 
 h+=`</div>`;
 document.getElementById("content").innerHTML=h;
 }
 
-function archiveHabit(index){
+function toggleHabitType(i){
 const d=data();
-d.habits[index].archived=true;
+d.habits[i].type=d.habits[i].type==="work"?"personal":"work";
 save();
 showSettings();
 }
 
-function restoreHabit(index){
+function archiveHabit(i){
 const d=data();
-d.habits[index].archived=false;
+d.habits[i].archived=true;
 save();
 showSettings();
 }
@@ -199,7 +205,6 @@ const reader=new FileReader();
 reader.onload=function(){
 
 store=JSON.parse(reader.result);
-
 ensure(logKey);
 save();
 
@@ -215,22 +220,18 @@ function showSettings(){
 
 const d=data();
 
-let h=`<div class="card"><h3>Personal Habits</h3>`;
+let h=`<div class="card"><h3>Habits</h3>`;
 
 d.habits.forEach((x,i)=>{
-if(!x.archived && x.type!=="work"){
-h+=`<div class="row-actions"><div>${esc(x.name)}</div>
-<button class="btn archive" onclick="archiveHabit(${i})">Archive</button></div>`;
-}
-});
 
-h+=`<h3>Work Habits</h3>`;
+h+=`<div class="row-actions">
+<div>${esc(x.name)}</div>
+<button class="btn secondary" onclick="toggleHabitType(${i})">
+${x.type==="work"?"Move to Personal":"Move to Work"}
+</button>
+<button class="btn archive" onclick="archiveHabit(${i})">Archive</button>
+</div>`;
 
-d.habits.forEach((x,i)=>{
-if(!x.archived && x.type==="work"){
-h+=`<div class="row-actions"><div>${esc(x.name)}</div>
-<button class="btn archive" onclick="archiveHabit(${i})">Archive</button></div>`;
-}
 });
 
 h+=`<h3>Add Habit</h3>
@@ -247,7 +248,7 @@ h+=`<h3>Add Habit</h3>
 <button class="btn secondary" onclick="exportData()">Export Backup</button>
 <input type="file" onchange="importData(event)">
 
-<div class="muted">Version 3.1</div>
+<div class="muted">Version 3.2</div>
 </div>`;
 
 document.getElementById("content").innerHTML=h;
