@@ -104,22 +104,27 @@ function freshMeta() {
   };
 }
 
-function migrateMeta(raw) {
+function migrateMeta(raw, sourceStore) {
   // Migrate from v3.x formats
   if (!raw.version) {
-    // Try to pull habits from old per-month store
-    const oldStore = {};
-    try {
-      const os = JSON.parse(localStorage.getItem("habitV251")) || {};
-      Object.assign(oldStore, os);
-    } catch(e) {}
-    const oldMeta = {};
-    try {
-      const om = JSON.parse(localStorage.getItem("habitMetaV35"))
-              || JSON.parse(localStorage.getItem("habitMetaV34"))
-              || {};
-      Object.assign(oldMeta, om);
-    } catch(e) {}
+    // Use provided sourceStore (from import) or fall back to localStorage
+    const oldStore = sourceStore || {};
+    if (!sourceStore) {
+      try {
+        const os = JSON.parse(localStorage.getItem("habitV251")) || {};
+        Object.assign(oldStore, os);
+      } catch(e) {}
+    }
+    const oldMeta = raw; // raw IS the old meta when importing
+    // Also try localStorage meta as fallback for on-load migration
+    if (!sourceStore) {
+      try {
+        const om = JSON.parse(localStorage.getItem("habitMetaV35"))
+                || JSON.parse(localStorage.getItem("habitMetaV34"))
+                || {};
+        Object.assign(oldMeta, om);
+      } catch(e) {}
+    }
 
     // Migrate old store days (stored by habit name) — convert to ids based on name match
     const migratedHabits = [];
@@ -507,11 +512,18 @@ function importJSON(file) {
     try {
       const parsed = JSON.parse(reader.result);
       if (parsed.version && parsed.store && parsed.meta) {
+        // v4 native format — use directly
         store = parsed.store;
         meta  = parsed.meta;
       } else if (parsed.store) {
-        store = parsed.store;
-        meta  = migrateMeta(parsed.meta || {});
+        // v3 format — migrate meta AND remap store days from names to IDs
+        // migrateMeta writes remapped days into store as a side effect
+        store = {};
+        meta  = migrateMeta(parsed.meta || {}, parsed.store);
+        // Carry over any months migrateMeta didn't touch
+        Object.keys(parsed.store).forEach(mk => {
+          if (!store[mk]) store[mk] = parsed.store[mk];
+        });
       } else {
         showDialog("Import failed", "The file doesn't look like a valid Daymark backup.", [{label:"OK",action:closeDialog}]);
         return;
