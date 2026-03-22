@@ -291,15 +291,40 @@ function jumpToDay(key, day) {
 
 // ─── LIFE TAB ─────────────────────────────────────────────────────────────────
 
+// ─── LIFE TAB ─────────────────────────────────────────────────────────────────
+
 function renderLife() {
+  const view = state.lifeView || "moments";
+  const tabs = [
+    { id: "moments", label: "Moments" },
+    { id: "reviews", label: "Reviews" },
+    { id: "books",   label: "Books"   }
+  ];
+  const tabHtml = `<div class="life-tabs">
+    ${tabs.map(t => `<button class="life-tab ${t.id===view?'active':''}" onclick="setLifeView('${t.id}')">${t.label}</button>`).join("")}
+  </div>`;
+
+  let html = tabHtml;
+
+  if (view === "moments")  html += renderMomentsView();
+  else if (view === "reviews") html += renderReviewsView();
+  else if (view === "books")   html += renderBooksView();
+
+  document.getElementById("content").innerHTML = html;
+}
+
+function setLifeView(view) {
+  state.lifeView = view;
+  renderLife();
+}
+
+// ── Moments view ──────────────────────────────────────────────────────────────
+
+function renderMomentsView() {
   const key = state.lifeMonthKey;
   const md  = monthData(key);
-
-  // Collect entries with content across all months for the cross-month view
   let entriesHtml = "";
   let hasAny = false;
-
-  // Show current selected month moments
   const dayNums = Object.keys(md.moments).sort((a,b)=>Number(b)-Number(a));
   dayNums.forEach(d => {
     const text = String(md.moments[d]||"").trim();
@@ -311,33 +336,11 @@ function renderLife() {
       <div class="muted moment-tap">Tap to edit</div>
     </div>`;
   });
-
-  // Weekly reviews for this month
-  let reviewsHtml = "";
-  Object.keys(meta.weeklyReviews).sort().reverse().forEach(wk => {
-    // Only show reviews that fall in the selected month — approximate by year-month prefix
-    const yr = wk.split("-W")[0];
-    const d  = monthDate(key);
-    if (String(d.getFullYear()) !== yr) return;
-    const rv = meta.weeklyReviews[wk];
-    reviewsHtml += `<div class="moment-entry">
-      <div class="moment-date">Week ${wk.split("-W")[1]} review</div>
-      <div class="moment-text">${escapeHtml(rv.text)}</div>
-    </div>`;
-  });
-
-  let html = `
+  return `
     ${monthNavBar(key, "lifePrevMonth", "lifeNextMonth")}
     <div class="card">
-      <h3>Memorable Moments</h3>
       ${hasAny ? entriesHtml : '<div class="muted">No moments logged this month.</div>'}
     </div>`;
-
-  if (reviewsHtml) {
-    html += `<div class="card"><h3>Weekly Reviews</h3>${reviewsHtml}</div>`;
-  }
-
-  document.getElementById("content").innerHTML = html;
 }
 
 function lifePrevMonth() {
@@ -347,6 +350,195 @@ function lifePrevMonth() {
 function lifeNextMonth() {
   const nk = nextMonthKey(state.lifeMonthKey);
   if (nk <= CURRENT_MONTH_KEY) { state.lifeMonthKey = nk; renderLife(); }
+}
+
+// ── Reviews view ──────────────────────────────────────────────────────────────
+
+function renderReviewsView() {
+  const reviews = Object.keys(meta.weeklyReviews).sort().reverse();
+  if (!reviews.length) {
+    return `<div class="card"><div class="muted">No weekly reviews yet. The review prompt appears on Fridays.</div></div>`;
+  }
+  let html = `<div class="card">`;
+  reviews.forEach(wk => {
+    const rv  = meta.weeklyReviews[wk];
+    const num = wk.split("-W")[1];
+    const yr  = wk.split("-W")[0];
+    html += `<div class="moment-entry">
+      <div class="moment-date">Week ${num}, ${yr}</div>
+      <div class="moment-text">${escapeHtml(rv.text)}</div>
+    </div>`;
+  });
+  return html + `</div>`;
+}
+
+// ── Books view ────────────────────────────────────────────────────────────────
+
+function renderBooksView() {
+  const books    = getBooks();
+  const year     = DEFAULT_LOG_DATE.getFullYear();
+  const finished = booksFinishedThisYear(year);
+  const reading  = currentlyReading();
+  const { goal } = bookGoalProgress();
+
+  let html = "";
+
+  // Stats bar
+  const avgDays = finished.length
+    ? Math.round(finished.reduce((sum,b) => sum + (bookDays(b)||0), 0) / finished.length)
+    : null;
+  const fastest = finished.length
+    ? finished.reduce((min,b) => (bookDays(b)||999) < (bookDays(min)||999) ? b : min, finished[0])
+    : null;
+
+  html += `<div class="score-grid">
+    <div class="metric">${finished.length}<small>Read ${year}</small></div>
+    <div class="metric">${avgDays !== null ? avgDays+"d" : "—"}<small>Avg time</small></div>
+    <div class="metric">${goal ? `${finished.length}/${goal.text.match(/\d+/)?.[0]||"?"}` : "—"}<small>Goal</small></div>
+  </div>`;
+
+  // Currently reading
+  if (reading.length) {
+    html += `<div class="card"><h3>Currently reading</h3>`;
+    reading.forEach(b => {
+      const started = b.startDate ? `Started ${b.startDate}` : "";
+      const daysSince = b.startDate
+        ? Math.round((Date.now() - new Date(b.startDate)) / 86400000)
+        : null;
+      html += `<div class="book-row">
+        <div class="book-info">
+          <div class="book-title">${escapeHtml(b.title)}</div>
+          <div class="book-meta">${started}${daysSince !== null ? ` · ${daysSince} days in` : ""}</div>
+        </div>
+        <div class="book-actions">
+          <button class="small-btn small-green" onclick="openFinishBookDialog('${b.id}')">Finish</button>
+          <button class="small-btn" onclick="openEditBookDialog('${b.id}')">Edit</button>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Finished books this year
+  if (finished.length) {
+    html += `<div class="card"><h3>Finished ${year}</h3>`;
+    [...finished].reverse().forEach(b => {
+      const days = bookDays(b);
+      html += `<div class="book-row">
+        <div class="book-info">
+          <div class="book-title">${escapeHtml(b.title)}</div>
+          <div class="book-meta">${b.startDate} → ${b.endDate}${days ? ` · ${days} days` : ""}${fastest&&b.id===fastest.id&&finished.length>1?" · ⚡ fastest":""}</div>
+          ${b.notes ? `<div class="book-notes">${escapeHtml(b.notes)}</div>` : ""}
+        </div>
+        <button class="small-btn" onclick="openEditBookDialog('${b.id}')">Edit</button>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Older books
+  const older = books.filter(b => b.endDate && !b.endDate.startsWith(String(year)));
+  if (older.length) {
+    html += `<div class="card"><h3>Previous years</h3>`;
+    [...older].reverse().forEach(b => {
+      const days = bookDays(b);
+      html += `<div class="book-row">
+        <div class="book-info">
+          <div class="book-title">${escapeHtml(b.title)}</div>
+          <div class="book-meta">${b.endDate?.slice(0,4)} · ${days ? days+" days" : ""}</div>
+        </div>
+        <button class="small-btn" onclick="openEditBookDialog('${b.id}')">Edit</button>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  if (!books.length) {
+    html += `<div class="card"><div class="muted">No books added yet. Add your first book below.</div></div>`;
+  }
+
+  // Add book form
+  const today = new Date().toISOString().slice(0,10);
+  html += `<div class="card">
+    <h3>Add a book</h3>
+    <input id="new-book-title" type="text" placeholder="Title">
+    <label style="margin-top:8px;display:block;font-size:13px;color:var(--muted)">Date started</label>
+    <input id="new-book-start" type="date" value="${today}">
+    <button class="btn" id="add-book-btn" style="margin-top:10px">Add Book</button>
+  </div>`;
+
+  // Attach listener after render
+  setTimeout(() => {
+    const btn = document.getElementById("add-book-btn");
+    if (btn) btn.addEventListener("click", submitAddBook);
+  }, 0);
+
+  return html;
+}
+
+function submitAddBook() {
+  const title = document.getElementById("new-book-title")?.value?.trim();
+  if (!title) { showToast("Enter a book title", null); return; }
+  const start = document.getElementById("new-book-start")?.value || "";
+  addBook(title, start);
+  renderLife();
+  showToast(`"${title}" added`, null);
+}
+
+function openFinishBookDialog(id) {
+  const b = meta.books.find(x=>x.id===id); if (!b) return;
+  const today = new Date().toISOString().slice(0,10);
+  showCustomDialog("Finished!", `
+    <div style="font-weight:700;margin-bottom:8px">${escapeHtml(b.title)}</div>
+    <label>Date finished</label>
+    <input id="fb-end" type="date" value="${today}">
+    <label style="margin-top:8px;display:block">Notes (optional)</label>
+    <input id="fb-notes" type="text" placeholder="e.g. Loved it, 4/5">
+  `, [
+    { label: "Mark finished", action: () => {
+      const end   = document.getElementById("fb-end")?.value || today;
+      const notes = document.getElementById("fb-notes")?.value?.trim() || "";
+      finishBook(id, end);
+      if (notes) updateBook(id, { notes });
+      renderLife();
+      const days = bookDays({ startDate: b.startDate, endDate: end });
+      showToast(`Finished in ${days||"?"} days 🎉`, null);
+    }},
+    { label: "Cancel", action: closeDialog }
+  ]);
+}
+
+function openEditBookDialog(id) {
+  const b = meta.books.find(x=>x.id===id); if (!b) return;
+  showCustomDialog("Edit Book", `
+    <label>Title</label>
+    <input id="eb-title" type="text" value="${escapeHtml(b.title)}">
+    <label style="margin-top:8px;display:block">Date started</label>
+    <input id="eb-start" type="date" value="${b.startDate||""}">
+    <label style="margin-top:8px;display:block">Date finished</label>
+    <input id="eb-end" type="date" value="${b.endDate||""}">
+    <label style="margin-top:8px;display:block">Notes</label>
+    <input id="eb-notes" type="text" value="${escapeHtml(b.notes||"")}" placeholder="e.g. Loved it, 4/5">
+  `, [
+    { label: "Save", action: () => {
+      const title = document.getElementById("eb-title")?.value?.trim();
+      if (!title) { showToast("Title can't be empty", null); return; }
+      updateBook(id, {
+        title,
+        startDate: document.getElementById("eb-start")?.value || "",
+        endDate:   document.getElementById("eb-end")?.value   || "",
+        notes:     document.getElementById("eb-notes")?.value?.trim() || ""
+      });
+      renderLife();
+    }},
+    { label: "Delete", danger: true, action: () => {
+      showDialog("Delete Book", `Remove "${b.title}"?`, [
+        { label: "Delete", danger: true, action: () => { deleteBook(id); renderLife(); }},
+        { label: "Cancel", action: closeDialog }
+      ]);
+    }},
+    { label: "Cancel", action: closeDialog }
+  ]);
 }
 
 // ─── STATS TAB ────────────────────────────────────────────────────────────────
@@ -475,11 +667,61 @@ function statsNextYear() { if(state.statsYear<DEFAULT_LOG_DATE.getFullYear()) { 
 // ─── SETTINGS TAB ─────────────────────────────────────────────────────────────
 
 function renderSettings() {
-  document.getElementById("content").innerHTML =
-    renderHabitsSection() + renderCategoriesSection() + renderGoalsSection() + renderTrackersSection() + renderBackupSection();
+  const view = state.settingsView || "habits";
+  const tabs = [
+    { id: "habits",   label: "Habits"   },
+    { id: "trackers", label: "Trackers" },
+    { id: "goals",    label: "Goals"    },
+    { id: "data",     label: "Data"     }
+  ];
+
+  const tabHtml = `<div class="life-tabs">
+    ${tabs.map(t => `<button class="life-tab ${t.id===view?'active':''}" onclick="setSettingsView('${t.id}')">${t.label}</button>`).join("")}
+  </div>`;
+
+  let sectionHtml = "";
+  if      (view === "habits")   sectionHtml = renderHabitsSection() + renderCategoriesSection();
+  else if (view === "trackers") sectionHtml = renderTrackersSection();
+  else if (view === "goals")    sectionHtml = renderGoalsSection();
+  else if (view === "data")     sectionHtml = renderWeightSection() + renderBackupSection();
+
+  document.getElementById("content").innerHTML = tabHtml + sectionHtml;
+
   // Attach add-tracker button via addEventListener (more reliable on iOS PWA than onclick)
   const addBtn = document.getElementById("add-tracker-btn");
   if (addBtn) addBtn.addEventListener("click", submitAddTracker);
+}
+
+function setSettingsView(view) {
+  state.settingsView = view;
+  renderSettings();
+}
+
+// Weight section kept for Data tab — just baseline and unit settings
+function renderWeightSection() {
+  const trackers = getTrackers();
+  if (!trackers.length) return "";
+  // Show baseline/unit settings for each tracker inline
+  let html = `<div class="card"><h3>Tracker Settings</h3>`;
+  trackers.forEach(t => {
+    html += `<div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+      <div style="font-weight:600;margin-bottom:6px">${escapeHtml(t.name)}</div>
+      <div class="inline-row">
+        <div>
+          <label>Baseline</label>
+          <input type="number" step="0.1" value="${t.baseline||""}" placeholder="Optional"
+            onchange="updateTracker('${t.id}',{baseline:this.value});renderSettings()">
+        </div>
+        <div>
+          <label>Unit</label>
+          <input type="text" maxlength="10" value="${escapeHtml(t.unit||"")}" placeholder="kg, hrs..."
+            onchange="updateTracker('${t.id}',{unit:this.value});renderSettings()">
+        </div>
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+  return html;
 }
 
 function renderHabitsSection() {

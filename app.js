@@ -1,6 +1,6 @@
 // ─── Version & Constants ──────────────────────────────────────────────────────
 
-const APP_VERSION = "4.3.1";
+const APP_VERSION = "4.5";
 const STORE_KEY        = "daymarkV4";
 const META_KEY         = "daymarkMetaV4";
 const AUTO_BACKUP_KEY  = "daymarkAutoBackup"; // stores timestamp of last auto-backup
@@ -65,6 +65,8 @@ let state = {
   progressMonthKey: CURRENT_MONTH_KEY,
   // Life tab
   lifeMonthKey:     CURRENT_MONTH_KEY,
+  lifeView:         "moments", // "moments" | "reviews" | "books"
+  settingsView:     "habits",   // "habits" | "trackers" | "goals" | "data"
   // Stats tab
   statsYear:        DEFAULT_LOG_DATE.getFullYear(),
   statsHabitId:     null,
@@ -102,7 +104,8 @@ function freshMeta() {
     categories:    clone(DEFAULT_CATEGORIES),
     goals:         [],
     trackers: [{ id: "t0", name: "Weight", unit: "kg", baseline: "" }],
-    weeklyReviews: {}
+    weeklyReviews: {},
+    books: []
   };
 }
 
@@ -166,7 +169,8 @@ function migrateMeta(raw, sourceStore) {
       categories:    clone(DEFAULT_CATEGORIES),
       goals:         (oldMeta.goals||[]).map(g => ({ id: uid(), text: g.text||"", progress: g.progress||"", done: g.done||false, dueDate: "" })),
       trackers: [{ id: "t0", name: "Weight", unit: oldMeta.weightUnit||"kg", baseline: oldMeta.baselineWeight||"" }],
-      weeklyReviews: {}
+      weeklyReviews: {},
+      books: []
     };
   }
   // Already v4 format — just ensure all fields exist
@@ -176,7 +180,8 @@ function migrateMeta(raw, sourceStore) {
     categories:    raw.categories    || clone(DEFAULT_CATEGORIES),
     goals:         raw.goals         || [],
     trackers: raw.trackers || [{ id: "t0", name: "Weight", unit: raw.weightUnit||"kg", baseline: raw.baselineWeight||"" }],
-    weeklyReviews: raw.weeklyReviews || {}
+    weeklyReviews: raw.weeklyReviews || {},
+    books: raw.books || []
   };
 }
 
@@ -555,6 +560,58 @@ function exportJSON() {
   a.href = uri; a.download = `daymark-backup-${formatTimestamp()}.json`; a.click();
   // Reset auto-backup timer so we don't double-export shortly after
   resetAutoBackupTimer();
+}
+
+// ─── Books ───────────────────────────────────────────────────────────────────
+
+function getBooks() { return meta.books || []; }
+
+function addBook(title, startDate) {
+  meta.books.push({
+    id:        uid(),
+    title,
+    startDate, // "YYYY-MM-DD"
+    endDate:   "",
+    notes:     "",
+    abandoned: false
+  });
+  saveAll();
+}
+
+function updateBook(id, patch) {
+  const b = meta.books.find(b=>b.id===id); if (!b) return;
+  Object.assign(b, patch); saveAll();
+}
+
+function deleteBook(id) {
+  meta.books = meta.books.filter(b=>b.id!==id); saveAll();
+}
+
+function finishBook(id, endDate) {
+  updateBook(id, { endDate });
+}
+
+function bookDays(book) {
+  if (!book.startDate || !book.endDate) return null;
+  const start = new Date(book.startDate);
+  const end   = new Date(book.endDate);
+  return Math.max(1, Math.round((end - start) / 86400000) + 1);
+}
+
+function booksFinishedThisYear(year) {
+  return getBooks().filter(b => b.endDate && b.endDate.startsWith(String(year)));
+}
+
+function currentlyReading() {
+  return getBooks().filter(b => b.startDate && !b.endDate && !b.abandoned);
+}
+
+function bookGoalProgress() {
+  // Find goals that mention "book" and link count automatically
+  const year     = DEFAULT_LOG_DATE.getFullYear();
+  const finished = booksFinishedThisYear(year).length;
+  const goal     = meta.goals.find(g => /book/i.test(g.text) && !g.done);
+  return { finished, goal };
 }
 
 // ─── Auto Backup ──────────────────────────────────────────────────────────────

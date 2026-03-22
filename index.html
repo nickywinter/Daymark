@@ -525,6 +525,36 @@ h3 { margin: 14px 0 4px; font-size: 15px; }
   .tracker-row-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
   .tracker-row-actions { display: flex; gap: 5px; }
 
+
+  /* ── Life tab toggle ── */
+  .life-tabs {
+    display: flex; gap: 6px; margin-bottom: 12px;
+    background: var(--card); border-radius: var(--radius);
+    padding: 6px; box-shadow: var(--shadow);
+  }
+  .life-tab {
+    flex: 1; padding: 8px 4px; border: none; border-radius: 10px;
+    font-size: 14px; font-weight: 500; cursor: pointer;
+    background: transparent; color: var(--muted);
+    transition: background .15s, color .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .life-tab.active {
+    background: var(--accent); color: #fff; font-weight: 700;
+  }
+
+  /* ── Books ── */
+  .book-row {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 12px 0; border-bottom: 1px solid var(--border);
+  }
+  .book-row:last-of-type { border-bottom: none; }
+  .book-info { flex: 1; min-width: 0; }
+  .book-title { font-size: 15px; font-weight: 600; margin-bottom: 3px; }
+  .book-meta  { font-size: 12px; color: var(--muted); line-height: 1.4; }
+  .book-notes { font-size: 13px; color: var(--muted); margin-top: 4px; font-style: italic; }
+  .book-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
 </style>
 </head>
 <body>
