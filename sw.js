@@ -1,4 +1,4 @@
-const CACHE = "daymark-v4.2";
+const CACHE = "daymark-v4.3";
 const ASSETS = ["./", "./index.html", "./app.js", "./ui.js", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {

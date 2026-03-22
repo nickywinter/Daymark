@@ -112,15 +112,27 @@ function renderLog() {
     });
   });
 
-  // Weight + Moment
-  html += `<div class="card">
-    <h3>Weight <span class="muted" style="font-size:13px;font-weight:400">${escapeHtml(meta.weightUnit)}</span></h3>
-    <input type="number" step="0.1" id="weight-input" value="${md.weight[day]||""}" placeholder="e.g. 80.0"
-      oninput="saveWeight(this.value,'${key}',${day})">
-    <h3>Memorable Moment</h3>
-    <textarea id="moment-input" placeholder="What happened today worth remembering?"
-      oninput="saveMoment(this.value,'${key}',${day})">${md.moments[day]||""}</textarea>
-  </div>`;
+  // Trackers + Moment
+  const trackers = getTrackers();
+  if (trackers.length) {
+    html += `<div class="card">`;
+    trackers.forEach(t => {
+      const val = md.trackers?.[t.id]?.[day] || "";
+      html += `<h3>${escapeHtml(t.name)} <span class="muted" style="font-size:13px;font-weight:400">${escapeHtml(t.unit)}</span></h3>
+        <input type="number" step="0.1" value="${val}" placeholder="Enter value"
+          oninput="saveTrackerValue('${t.id}',this.value,'${key}',${day})">`;
+    });
+    html += `<h3>Memorable Moment</h3>
+      <textarea id="moment-input" placeholder="What happened today worth remembering?"
+        oninput="saveMoment(this.value,'${key}',${day})">${md.moments[day]||""}</textarea>
+    </div>`;
+  } else {
+    html += `<div class="card">
+      <h3>Memorable Moment</h3>
+      <textarea id="moment-input" placeholder="What happened today worth remembering?"
+        oninput="saveMoment(this.value,'${key}',${day})">${md.moments[day]||""}</textarea>
+    </div>`;
+  }
 
   document.getElementById("content").innerHTML = html;
   maybeShowFirstTip();
@@ -165,13 +177,8 @@ function renderProgress() {
   const monthScore= scoreForMonth(key);
   const md        = monthData(key);
 
-  // Weight summary
-  const wEntries = Object.keys(md.weight).sort((a,b)=>Number(a)-Number(b))
-    .filter(d=>String(md.weight[d]).trim()!=="");
-  const wCurrent = wEntries.length ? Number(md.weight[wEntries[wEntries.length-1]]) : null;
-  const wBaseline= meta.baselineWeight!=="" ? Number(meta.baselineWeight) : null;
-  const wChange  = (wCurrent!==null&&wBaseline!==null&&!isNaN(wCurrent)&&!isNaN(wBaseline))
-    ? (wCurrent-wBaseline).toFixed(1) : null;
+  // Tracker summaries
+  const trackerSummaries = getTrackers().map(t => ({ tracker: t, ...trackerSummary(t.id, key) }));
 
   let html = `
     ${monthNavBar(key, "progressPrevMonth", "progressNextMonth")}
@@ -183,7 +190,7 @@ function renderProgress() {
     </div>
 
     ${renderGoalCard()}
-    ${renderWeightCard(wCurrent, wBaseline, wChange, md, wEntries)}
+    ${trackerSummaries.map(s => renderTrackerCard(s, key)).join("")}
     ${renderMonthGrid(key, md)}`;
 
   document.getElementById("content").innerHTML = html;
@@ -222,10 +229,11 @@ function renderGoalCard() {
   return html + `</div>`;
 }
 
-function renderWeightCard(wCurrent, wBaseline, wChange, md, wEntries) {
+function renderTrackerCard(s, key) {
+  const { tracker, entries, current, baseline, change, data } = s;
   let chartHtml = "";
-  if (wEntries.length >= 2) {
-    const values = wEntries.map(d=>Number(md.weight[d])).filter(v=>!isNaN(v));
+  if (entries.length >= 2) {
+    const values = entries.map(d=>Number(data[d])).filter(v=>!isNaN(v));
     const vw=400,vh=160,pad=18;
     const mn=Math.min(...values),mx=Math.max(...values),rng=mx-mn||1;
     const xStep=(vw-pad*2)/Math.max(values.length-1,1);
@@ -236,13 +244,14 @@ function renderWeightCard(wCurrent, wBaseline, wChange, md, wEntries) {
       <polyline fill="none" stroke="#007AFF" stroke-width="2.5" points="${pts}"/>
       <g fill="#007AFF">${circles}</g></svg>`;
   }
-  return `<div class="card"><h3>Weight</h3>
-    <div class="weight-grid">
-      <div class="metric">${wCurrent!==null&&!isNaN(wCurrent)?wCurrent.toFixed(1):"—"}<small>Current</small></div>
-      <div class="metric">${wBaseline!==null&&!isNaN(wBaseline)?wBaseline.toFixed(1):"—"}<small>Baseline</small></div>
-      <div class="metric">${wChange!==null?(wChange>0?"+":"")+wChange:"—"}<small>Change</small></div>
+  const showBaseline = tracker.baseline !== "" && baseline !== null && !isNaN(baseline);
+  return `<div class="card"><h3>${escapeHtml(tracker.name)} <span class="muted" style="font-size:13px;font-weight:400">${escapeHtml(tracker.unit)}</span></h3>
+    <div class="${showBaseline ? 'weight-grid' : 'inline-row'}">
+      <div class="metric">${current!==null&&!isNaN(current)?Number(current).toFixed(1):"—"}<small>Current</small></div>
+      ${showBaseline ? `<div class="metric">${baseline.toFixed(1)}<small>Baseline</small></div>
+      <div class="metric">${change!==null?(change>0?"+":"")+change:"—"}<small>Change</small></div>` : ""}
     </div>
-    ${chartHtml||`<div class="muted">Log at least 2 weight entries to see a trend.</div>`}
+    ${chartHtml||`<div class="muted" style="margin-top:8px">Log at least 2 entries to see a trend.</div>`}
   </div>`;
 }
 
@@ -467,7 +476,7 @@ function statsNextYear() { if(state.statsYear<DEFAULT_LOG_DATE.getFullYear()) { 
 
 function renderSettings() {
   document.getElementById("content").innerHTML =
-    renderHabitsSection() + renderCategoriesSection() + renderGoalsSection() + renderWeightSection() + renderBackupSection();
+    renderHabitsSection() + renderCategoriesSection() + renderGoalsSection() + renderTrackersSection() + renderBackupSection();
 }
 
 function renderHabitsSection() {
@@ -566,22 +575,43 @@ function renderGoalsSection() {
   return html;
 }
 
-function renderWeightSection() {
-  return `<div class="card"><h3>Weight</h3>
-    <div class="inline-row">
-      <div>
-        <label style="font-size:13px;color:var(--muted)">Baseline</label>
-        <input type="number" step="0.1" value="${meta.baselineWeight||""}" onchange="meta.baselineWeight=this.value;saveAll()" placeholder="e.g. 80.0">
+function renderTrackersSection() {
+  const trackers = getTrackers();
+  let html = `<div class="card"><h3>Trackers <span class="muted" style="font-size:13px;font-weight:400">${trackers.length}/3</span></h3>`;
+
+  trackers.forEach(t => {
+    html += `<div class="tracker-row">
+      <div class="tracker-row-info">
+        <div class="tracker-row-name">${escapeHtml(t.name)}</div>
+        <div class="tracker-row-meta">${escapeHtml(t.unit)}${t.baseline ? ` · Baseline: ${t.baseline}` : " · No baseline"}</div>
       </div>
-      <div>
-        <label style="font-size:13px;color:var(--muted)">Unit</label>
-        <select onchange="meta.weightUnit=this.value;saveAll()">
-          <option value="kg" ${meta.weightUnit==="kg"?"selected":""}>kg</option>
-          <option value="lbs" ${meta.weightUnit==="lbs"?"selected":""}>lbs</option>
-        </select>
+      <div class="tracker-row-actions">
+        <button class="small-btn" onclick="openEditTrackerDialog('${t.id}')">Edit</button>
+        ${trackers.length > 1 ? `<button class="small-btn small-danger" onclick="openDeleteTrackerDialog('${t.id}')">Delete</button>` : ""}
       </div>
-    </div>
-  </div>`;
+    </div>`;
+  });
+
+  if (trackers.length < 3) {
+    html += `<h3>Add Tracker</h3>
+      <input id="new-tracker-name" type="text" maxlength="30" placeholder="e.g. Weight, Sleep hours, Mood">
+      <div class="inline-row" style="margin-top:0">
+        <div>
+          <label>Unit</label>
+          <input id="new-tracker-unit" type="text" maxlength="10" placeholder="kg, hrs, /10">
+        </div>
+        <div>
+          <label>Baseline (optional)</label>
+          <input id="new-tracker-baseline" type="number" step="0.1" placeholder="e.g. 80.0">
+        </div>
+      </div>
+      <button class="btn" onclick="submitAddTracker()">Add Tracker</button>`;
+  } else {
+    html += `<div class="muted" style="margin-top:8px">Maximum 3 trackers reached.</div>`;
+  }
+
+  html += `</div>`;
+  return html;
 }
 
 function renderBackupSection() {
@@ -756,6 +786,50 @@ function submitAddCategory() {
   const color = document.getElementById("new-cat-color")?.value || CATEGORY_COLORS[0];
   addCategory(name, color);
   renderSettings();
+}
+
+// ─── Tracker dialogs ─────────────────────────────────────────────────────────
+
+function submitAddTracker() {
+  const name = document.getElementById("new-tracker-name")?.value?.trim();
+  if (!name) { showToast("Enter a tracker name", null); return; }
+  const unit     = document.getElementById("new-tracker-unit")?.value?.trim() || "";
+  const baseline = document.getElementById("new-tracker-baseline")?.value?.trim() || "";
+  addTracker(name, unit, baseline);
+  renderSettings();
+  showToast(`"${name}" tracker added`, null);
+}
+
+function openEditTrackerDialog(id) {
+  const t = meta.trackers?.find(x=>x.id===id); if (!t) return;
+  showCustomDialog("Edit Tracker", `
+    <label>Name</label>
+    <input id="et-name" type="text" maxlength="30" value="${escapeHtml(t.name)}">
+    <label style="margin-top:8px;display:block">Unit</label>
+    <input id="et-unit" type="text" maxlength="10" value="${escapeHtml(t.unit)}" placeholder="kg, hrs, /10">
+    <label style="margin-top:8px;display:block">Baseline (optional)</label>
+    <input id="et-baseline" type="number" step="0.1" value="${t.baseline||""}" placeholder="Leave blank for no baseline">
+  `, [
+    { label: "Save", action: () => {
+      const name = document.getElementById("et-name")?.value?.trim();
+      if (!name) { showToast("Name can't be empty", null); return; }
+      updateTracker(id, {
+        name,
+        unit:     document.getElementById("et-unit")?.value?.trim() || "",
+        baseline: document.getElementById("et-baseline")?.value?.trim() || ""
+      });
+      renderSettings();
+    }},
+    { label: "Cancel", action: closeDialog }
+  ]);
+}
+
+function openDeleteTrackerDialog(id) {
+  const t = meta.trackers?.find(x=>x.id===id); if (!t) return;
+  showDialog("Delete Tracker", `Delete "${t.name}"? All logged data for this tracker will be removed. This cannot be undone.`, [
+    { label: "Delete", danger: true, action: () => { deleteTracker(id); renderSettings(); showToast(`"${t.name}" deleted`, null); }},
+    { label: "Cancel", action: closeDialog }
+  ]);
 }
 
 function submitAddGoal() {

@@ -1,6 +1,6 @@
 // ─── Version & Constants ──────────────────────────────────────────────────────
 
-const APP_VERSION = "4.2";
+const APP_VERSION = "4.3";
 const STORE_KEY        = "daymarkV4";
 const META_KEY         = "daymarkMetaV4";
 const AUTO_BACKUP_KEY  = "daymarkAutoBackup"; // stores timestamp of last auto-backup
@@ -79,8 +79,9 @@ let state = {
 
 // ─── Storage ──────────────────────────────────────────────────────────────────
 
-// store: { [monthKey]: { days: { [day]: [habitId, ...] }, weight: { [day]: number }, moments: { [day]: string }, skips: { [day]: [habitId,...] } } }
-// meta:  { version, habits, categories, goals, baselineWeight, weightUnit, weeklyReviews: { [weekKey]: string } }
+// store: { [monthKey]: { days: { [day]: [habitId, ...] }, trackers: { [trackerId]: { [day]: number } }, moments: { [day]: string }, skips: { [day]: [habitId,...] } } }
+// meta:  { version, habits, categories, goals, trackers: [{id,name,unit,baseline}], weeklyReviews: { [weekKey]: string } }
+// Migrated from: weight/{baselineWeight/weightUnit} -> trackers[0]
 
 let store = {};
 let meta  = {};
@@ -100,8 +101,7 @@ function freshMeta() {
     habits:        clone(DEFAULT_HABITS),
     categories:    clone(DEFAULT_CATEGORIES),
     goals:         [],
-    baselineWeight:"",
-    weightUnit:    "kg",
+    trackers: [{ id: "t0", name: "Weight", unit: "kg", baseline: "" }],
     weeklyReviews: {}
   };
 }
@@ -146,7 +146,12 @@ function migrateMeta(raw, sourceStore) {
     // Migrate store — remap name-keyed days to id-keyed days
     Object.keys(oldStore).forEach(mk => {
       const ms = oldStore[mk];
-      store[mk] = { days: {}, weight: ms.weight||{}, moments: ms.moments||{}, skips: {} };
+      // Migrate old weight data into trackers format
+      const migratedTrackers = {};
+      if (ms.weight && Object.keys(ms.weight).length) {
+        migratedTrackers["t0"] = ms.weight;
+      }
+      store[mk] = { days: {}, trackers: migratedTrackers, moments: ms.moments||{}, skips: {} };
       Object.keys(ms.days||{}).forEach(day => {
         store[mk].days[day] = (ms.days[day]||[]).map(name => {
           const h = migratedHabits.find(x => x.name === name);
@@ -160,8 +165,7 @@ function migrateMeta(raw, sourceStore) {
       habits:        migratedHabits.length ? migratedHabits : clone(DEFAULT_HABITS),
       categories:    clone(DEFAULT_CATEGORIES),
       goals:         (oldMeta.goals||[]).map(g => ({ id: uid(), text: g.text||"", progress: g.progress||"", done: g.done||false, dueDate: "" })),
-      baselineWeight: oldMeta.baselineWeight||"",
-      weightUnit:    oldMeta.weightUnit||"kg",
+      trackers: [{ id: "t0", name: "Weight", unit: oldMeta.weightUnit||"kg", baseline: oldMeta.baselineWeight||"" }],
       weeklyReviews: {}
     };
   }
@@ -171,8 +175,7 @@ function migrateMeta(raw, sourceStore) {
     habits:        raw.habits        || clone(DEFAULT_HABITS),
     categories:    raw.categories    || clone(DEFAULT_CATEGORIES),
     goals:         raw.goals         || [],
-    baselineWeight:raw.baselineWeight|| "",
-    weightUnit:    raw.weightUnit    || "kg",
+    trackers: raw.trackers || [{ id: "t0", name: "Weight", unit: raw.weightUnit||"kg", baseline: raw.baselineWeight||"" }],
     weeklyReviews: raw.weeklyReviews || {}
   };
 }
@@ -194,12 +197,13 @@ function monthExists(key)  { return !!store[key]; }
 
 // Only create a month record when we're about to WRITE to it
 function ensureMonthForWrite(key) {
-  if (!store[key]) store[key] = { days:{}, weight:{}, moments:{}, skips:{} };
-  if (!store[key].skips) store[key].skips = {};
+  if (!store[key]) store[key] = { days:{}, trackers:{}, moments:{}, skips:{} };
+  if (!store[key].skips)    store[key].skips = {};
+  if (!store[key].trackers) store[key].trackers = {};
 }
 
 function monthData(key) {
-  return store[key] || { days:{}, weight:{}, moments:{}, skips:{} };
+  return store[key] || { days:{}, trackers:{}, moments:{}, skips:{} };
 }
 
 function allMonthKeys() { return Object.keys(store).sort().reverse(); }
@@ -474,10 +478,54 @@ function toggleSkip(habitId, key, day) {
   renderLog();
 }
 
-const saveWeight  = debounce((v, key, day) => { ensureMonthForWrite(key); store[key].weight[day] = v; saveAll(); }, 600);
+const saveTrackerValue = debounce((trackerId, v, key, day) => {
+  ensureMonthForWrite(key);
+  if (!store[key].trackers[trackerId]) store[key].trackers[trackerId] = {};
+  store[key].trackers[trackerId][day] = v;
+  saveAll();
+}, 600);
 const saveMoment  = debounce((v, key, day) => { ensureMonthForWrite(key); store[key].moments[day] = v; saveAll(); }, 600);
 
 // ─── Export / Import ──────────────────────────────────────────────────────────
+
+// ─── Tracker CRUD ────────────────────────────────────────────────────────────
+
+function getTrackers() { return meta.trackers || []; }
+
+function addTracker(name, unit, baseline) {
+  if (getTrackers().length >= 3) { showToast("Maximum 3 trackers", null); return; }
+  meta.trackers.push({ id: "t"+uid(), name, unit, baseline: baseline||"" });
+  saveAll();
+}
+
+function updateTracker(id, patch) {
+  const t = meta.trackers.find(t=>t.id===id); if (!t) return;
+  Object.assign(t, patch); saveAll();
+}
+
+function deleteTracker(id) {
+  meta.trackers = meta.trackers.filter(t=>t.id!==id);
+  // Remove data from all months
+  Object.keys(store).forEach(mk => {
+    if (store[mk].trackers) delete store[mk].trackers[id];
+  });
+  saveAll();
+}
+
+function trackerSummary(trackerId, key) {
+  const md = monthData(key);
+  const data = md.trackers?.[trackerId] || {};
+  const entries = Object.keys(data).sort((a,b)=>Number(a)-Number(b))
+    .filter(d => String(data[d]).trim() !== "");
+  const current = entries.length ? Number(data[entries[entries.length-1]]) : null;
+  const tracker = meta.trackers?.find(t=>t.id===trackerId);
+  const baseline = tracker?.baseline !== "" ? Number(tracker?.baseline) : null;
+  let change = null;
+  if (current!==null && baseline!==null && !isNaN(current) && !isNaN(baseline)) {
+    change = (current - baseline).toFixed(1);
+  }
+  return { entries, current, baseline, change, data };
+}
 
 function exportJSON() {
   const payload = { version: APP_VERSION, store, meta };
