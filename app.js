@@ -1,6 +1,6 @@
 // ─── Version & Constants ──────────────────────────────────────────────────────
 
-const APP_VERSION = "4.0";
+const APP_VERSION = "4.1";
 const STORE_KEY   = "daymarkV4";
 const META_KEY    = "daymarkMetaV4";
 const MONTHS      = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -377,6 +377,7 @@ function moveHabit(id, direction) {
   if (newIdx<0||newIdx>=meta.habits.length) return;
   const tmp = meta.habits[idx]; meta.habits[idx]=meta.habits[newIdx]; meta.habits[newIdx]=tmp;
   saveAll();
+  renderSettings();
 }
 
 function updateHabitFrequency(id, frequency) {
@@ -603,8 +604,9 @@ function showDialog(title, message, buttons) {
 
 function dialogAction(i) {
   const btn = state.dialog?.buttons[i];
-  closeDialog();
+  // Run the action BEFORE closing so the action can still read dialog DOM elements
   if (btn?.action) btn.action();
+  closeDialog();
 }
 
 function closeDialog() {
