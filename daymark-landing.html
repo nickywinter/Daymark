@@ -6,7 +6,7 @@
 <title>Daymark — Mark your day. Then move on.</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -19,6 +19,8 @@
     --rule: #e5e2dd;
     --blue: #007AFF;
     --blue-soft: rgba(0, 122, 255, 0.08);
+    --green: #34c759;
+    --orange: #ff9500;
   }
 
   html { scroll-behavior: smooth; }
@@ -32,7 +34,7 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* NAV */
+  /* ── NAV ── */
   nav {
     position: fixed; top: 0; left: 0; right: 0; z-index: 100;
     padding: 20px 40px;
@@ -50,6 +52,14 @@
     letter-spacing: -0.3px;
     color: var(--ink);
     text-decoration: none;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .nav-logo-mark {
+    width: 28px; height: 28px;
+    background: #12183a;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
   }
   .nav-cta {
     font-size: 14px;
@@ -63,7 +73,7 @@
   }
   .nav-cta:hover { background: var(--blue); color: #fff; }
 
-  /* HERO */
+  /* ── HERO ── */
   .hero {
     min-height: 100vh;
     display: flex; flex-direction: column;
@@ -75,157 +85,212 @@
   }
 
   .hero-eyebrow {
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--ink-muted);
-    margin-bottom: 28px;
-    opacity: 0;
-    animation: fadeUp 0.7s ease 0.1s forwards;
+    font-size: 12px; font-weight: 500;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink-muted); margin-bottom: 28px;
+    opacity: 0; animation: fadeUp 0.7s ease 0.1s forwards;
   }
-
   .hero-title {
     font-family: 'Instrument Serif', serif;
     font-size: clamp(52px, 9vw, 96px);
-    line-height: 1.02;
-    letter-spacing: -2px;
-    color: var(--ink);
-    margin-bottom: 20px;
-    opacity: 0;
-    animation: fadeUp 0.7s ease 0.2s forwards;
+    line-height: 1.02; letter-spacing: -2px;
+    color: var(--ink); margin-bottom: 20px;
+    opacity: 0; animation: fadeUp 0.7s ease 0.2s forwards;
   }
-  .hero-title em {
-    font-style: italic;
-    color: var(--blue);
-  }
-
+  .hero-title em { font-style: italic; color: var(--blue); }
   .hero-tagline {
-    font-size: clamp(18px, 2.5vw, 22px);
-    font-weight: 300;
-    color: var(--ink-soft);
-    margin-bottom: 48px;
+    font-size: clamp(18px, 2.5vw, 22px); font-weight: 300;
+    color: var(--ink-soft); margin-bottom: 48px;
     letter-spacing: -0.2px;
-    opacity: 0;
-    animation: fadeUp 0.7s ease 0.3s forwards;
+    opacity: 0; animation: fadeUp 0.7s ease 0.3s forwards;
   }
-
   .hero-actions {
     display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;
-    margin-bottom: 80px;
-    opacity: 0;
-    animation: fadeUp 0.7s ease 0.4s forwards;
+    margin-bottom: 72px;
+    opacity: 0; animation: fadeUp 0.7s ease 0.4s forwards;
   }
-
   .btn-primary {
     display: inline-flex; align-items: center; gap: 8px;
-    background: var(--ink);
-    color: #fff;
+    background: var(--ink); color: #fff;
     font-family: 'DM Sans', sans-serif;
-    font-size: 15px;
-    font-weight: 500;
-    padding: 14px 28px;
-    border-radius: 100px;
+    font-size: 15px; font-weight: 500;
+    padding: 14px 28px; border-radius: 100px;
     text-decoration: none;
     transition: transform 0.15s, opacity 0.15s;
     letter-spacing: -0.1px;
   }
   .btn-primary:hover { transform: translateY(-1px); opacity: 0.85; }
-
   .btn-secondary {
     display: inline-flex; align-items: center;
-    color: var(--ink-soft);
-    font-size: 14px;
-    font-weight: 400;
-    padding: 14px 20px;
-    border-radius: 100px;
-    text-decoration: none;
-    transition: color 0.2s;
+    color: var(--ink-soft); font-size: 14px; font-weight: 400;
+    padding: 14px 20px; border-radius: 100px;
+    text-decoration: none; transition: color 0.2s;
   }
   .btn-secondary:hover { color: var(--ink); }
 
-  /* PHONE MOCKUP */
-  .phone-wrap {
-    opacity: 0;
-    animation: fadeUp 0.8s ease 0.5s forwards;
+  /* ── DUAL PHONE MOCKUPS ── */
+  .phones-wrap {
+    opacity: 0; animation: fadeUp 0.9s ease 0.5s forwards;
+    display: flex; gap: 24px; align-items: flex-start; justify-content: center;
+    flex-wrap: wrap;
   }
+
+  .phone-group { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .phone-label {
+    font-size: 11px; font-weight: 500; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--ink-muted);
+  }
+
   .phone {
-    width: 240px;
-    background: #fff;
-    border-radius: 36px;
+    width: 200px;
+    background: #f2f2f7;
+    border-radius: 32px;
     box-shadow:
-      0 0 0 8px #1a1a1a,
-      0 0 0 10px #2a2a2a,
-      0 40px 80px rgba(0,0,0,0.18),
-      0 8px 24px rgba(0,0,0,0.08);
+      0 0 0 7px #1a1a1a,
+      0 0 0 9px #2a2a2a,
+      0 32px 64px rgba(0,0,0,0.2),
+      0 8px 20px rgba(0,0,0,0.1);
     overflow: hidden;
     position: relative;
-    margin: 0 auto;
   }
   .phone-notch {
-    width: 80px; height: 22px;
+    width: 70px; height: 18px;
     background: #1a1a1a;
-    border-radius: 0 0 14px 14px;
+    border-radius: 0 0 12px 12px;
     margin: 0 auto;
     position: relative; z-index: 2;
   }
-  .phone-screen {
-    padding: 0 0 16px;
-    background: #f4f4f4;
-  }
+  .phone-screen { padding-bottom: 12px; }
   .phone-header {
     background: #fff;
     text-align: center;
-    padding: 12px;
+    padding: 10px 12px;
     font-family: 'Instrument Serif', serif;
-    font-size: 15px;
-    border-bottom: 1px solid #eee;
-    margin-bottom: 8px;
+    font-size: 13px; font-weight: 400;
+    border-bottom: 1px solid #e5e5ea;
+    margin-bottom: 0;
   }
-  .phone-section {
-    font-size: 9px;
-    font-weight: 700;
-    color: #888;
-    letter-spacing: 0.08em;
-    padding: 6px 12px 4px;
+
+  /* Log tab mockup */
+  .log-screen { background: #f2f2f7; }
+  .phone-day-nav {
+    background: #fff;
+    margin: 8px 8px 0;
+    border-radius: 10px;
+    padding: 8px 10px 6px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+  }
+  .phone-day-row {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .phone-day-arrow { color: #007AFF; font-size: 14px; }
+  .phone-day-info { text-align: center; }
+  .phone-day-date { font-size: 9px; font-weight: 700; }
+  .phone-day-sub  { font-size: 8px; color: #8e8e93; margin-top: 1px; }
+  .phone-progress-bar {
+    height: 3px; background: #e5e5ea; border-radius: 2px; margin-top: 6px;
+  }
+  .phone-progress-fill {
+    height: 100%; border-radius: 2px; background: #007AFF;
+    transition: width 1s ease 1.2s;
+    width: 0%;
+  }
+  .phone-section-label {
+    font-size: 8px; font-weight: 700; letter-spacing: 0.06em;
+    padding: 6px 10px 3px;
   }
   .phone-habit {
-    display: flex; align-items: center; gap: 8px;
-    background: #fff;
-    margin: 0 8px 6px;
-    padding: 10px 12px;
-    border-radius: 10px;
-    font-size: 11px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    display: flex; align-items: center; gap: 7px;
+    background: #fff; margin: 0 8px 5px;
+    padding: 8px 10px; border-radius: 9px;
+    font-size: 10px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
   }
+  .phone-habit-info { flex: 1; }
+  .phone-habit-name { font-size: 10px; }
+  .phone-freq { font-size: 7px; color: #007AFF; background: #e8f0fe; border-radius: 4px; padding: 1px 4px; margin-left: 3px; }
+  .phone-skip { font-size: 8px; color: #c7c7cc; border: 1px solid #e5e5ea; border-radius: 4px; padding: 1px 4px; margin-left: auto; }
   .phone-dot {
-    width: 14px; height: 14px;
-    border-radius: 50%;
-    border: 1.5px solid #D1D1D6;
-    flex-shrink: 0;
+    width: 12px; height: 12px; border-radius: 50%;
+    border: 1.5px solid #D1D1D6; flex-shrink: 0;
   }
   .phone-dot.done { background: #007AFF; border-color: #007AFF; }
+  .phone-dot.done-green { background: #34c759; border-color: #34c759; }
+  .phone-dot.done-orange { background: #ff9500; border-color: #ff9500; }
+
+  /* Stats tab mockup */
+  .stats-screen { background: #f2f2f7; }
+  .phone-stats-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px 4px;
+  }
+  .phone-stats-year { font-size: 13px; font-weight: 700; }
+  .phone-stats-nav { font-size: 12px; color: #007AFF; }
+  .phone-heatmap-wrap {
+    background: #fff; margin: 0 8px 6px;
+    border-radius: 10px; padding: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+  }
+  .phone-heatmap-title { font-size: 9px; font-weight: 700; margin-bottom: 6px; color: #111; }
+  .phone-heatmap {
+    display: flex; gap: 3px; flex-wrap: wrap;
+  }
+  .phone-heatmap-month { display: flex; flex-direction: column; gap: 1px; }
+  .phone-hm-label { font-size: 6px; color: #8e8e93; margin-bottom: 2px; text-align: center; }
+  .phone-hm-grid { display: grid; grid-template-columns: repeat(5, 6px); gap: 1px; }
+  .phone-hm-cell {
+    width: 6px; height: 6px; border-radius: 1px;
+    background: #e5e5ea;
+  }
+  .hm-1 { background: #b3d9ff; }
+  .hm-2 { background: #5aacff; }
+  .hm-3 { background: #1a7fd4; }
+  .hm-4 { background: #0a4f9e; }
+  .hm-x { background: transparent; }
+
+  .phone-mini-scores {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 4px; margin: 0 8px 6px;
+  }
+  .phone-mini-metric {
+    background: #fff; border-radius: 8px; padding: 6px 4px;
+    text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,.04);
+  }
+  .phone-mini-val { font-size: 13px; font-weight: 800; color: #111; }
+  .phone-mini-lbl { font-size: 7px; color: #8e8e93; margin-top: 1px; }
+
+  .phone-bar-card {
+    background: #fff; margin: 0 8px 6px;
+    border-radius: 10px; padding: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+  }
+  .phone-bar-title { font-size: 9px; font-weight: 700; margin-bottom: 6px; }
+  .phone-bars {
+    display: flex; align-items: flex-end; gap: 3px; height: 36px;
+  }
+  .phone-bar-col { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1; }
+  .phone-bar {
+    width: 100%; border-radius: 2px 2px 0 0;
+    background: #007AFF; opacity: 0.7;
+    transition: height 1s ease;
+  }
+  .phone-bar-lbl { font-size: 6px; color: #8e8e93; }
+
+  /* Shared tabs */
   .phone-tabs {
-    display: flex;
-    background: #fff;
-    border-top: 1px solid #eee;
-    margin-top: 8px;
+    display: flex; background: #fff;
+    border-top: 1px solid #e5e5ea;
+    margin-top: 6px;
   }
   .phone-tab {
     flex: 1; text-align: center;
-    font-size: 8px; padding: 6px 0;
-    color: #999;
+    font-size: 7px; padding: 5px 2px 4px;
+    color: #8e8e93; line-height: 1.2;
   }
+  .phone-tab-icon { font-size: 11px; display: block; }
   .phone-tab.active { color: #007AFF; font-weight: 700; }
 
-  /* RULE */
-  .section-rule {
-    width: 48px; height: 1px;
-    background: var(--rule);
-    margin: 0 auto 60px;
-  }
-
-  /* PRIVACY STRIP */
+  /* ── PRIVACY STRIP ── */
   .privacy-strip {
     background: var(--paper-warm);
     border-top: 1px solid var(--rule);
@@ -236,31 +301,22 @@
   .privacy-strip h2 {
     font-family: 'Instrument Serif', serif;
     font-size: clamp(28px, 4vw, 40px);
-    letter-spacing: -0.5px;
-    margin-bottom: 12px;
+    letter-spacing: -0.5px; margin-bottom: 12px;
   }
   .privacy-strip p {
-    color: var(--ink-soft);
-    font-size: 16px;
-    font-weight: 300;
-    max-width: 440px;
-    margin: 0 auto;
+    color: var(--ink-soft); font-size: 16px; font-weight: 300;
+    max-width: 440px; margin: 0 auto;
   }
 
-  /* FEATURES */
+  /* ── FEATURES ── */
   .features {
     padding: 96px 24px;
-    max-width: 960px;
-    margin: 0 auto;
+    max-width: 960px; margin: 0 auto;
   }
   .features-label {
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--ink-muted);
-    text-align: center;
-    margin-bottom: 60px;
+    font-size: 12px; font-weight: 500; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--ink-muted);
+    text-align: center; margin-bottom: 60px;
   }
   .features-grid {
     display: grid;
@@ -272,123 +328,93 @@
     overflow: hidden;
   }
   .feature {
-    background: var(--paper);
-    padding: 36px 32px;
+    background: var(--paper); padding: 36px 32px;
+    transition: background 0.2s;
   }
-  .feature-icon {
-    font-size: 24px;
-    margin-bottom: 16px;
-  }
+  .feature:hover { background: var(--paper-warm); }
+  .feature-icon { font-size: 24px; margin-bottom: 16px; }
   .feature h3 {
     font-family: 'Instrument Serif', serif;
-    font-size: 20px;
-    letter-spacing: -0.3px;
-    margin-bottom: 8px;
+    font-size: 20px; letter-spacing: -0.3px; margin-bottom: 8px;
   }
   .feature p {
-    font-size: 14px;
-    font-weight: 300;
-    color: var(--ink-soft);
-    line-height: 1.65;
+    font-size: 14px; font-weight: 300;
+    color: var(--ink-soft); line-height: 1.65;
+  }
+  .feature-new {
+    display: inline-block; font-size: 10px; font-weight: 500;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--blue); background: var(--blue-soft);
+    border-radius: 4px; padding: 2px 6px;
+    margin-bottom: 12px;
   }
 
-  /* LIFE SECTION */
+  /* ── LIFE SECTION ── */
   .life-section {
-    padding: 96px 24px;
-    max-width: 680px;
-    margin: 0 auto;
-    text-align: center;
+    padding: 96px 24px; max-width: 680px;
+    margin: 0 auto; text-align: center;
   }
   .life-section h2 {
     font-family: 'Instrument Serif', serif;
     font-size: clamp(32px, 5vw, 52px);
-    letter-spacing: -1px;
-    line-height: 1.1;
-    margin-bottom: 20px;
+    letter-spacing: -1px; line-height: 1.1; margin-bottom: 20px;
   }
   .life-section h2 em { font-style: italic; color: var(--blue); }
   .life-section p {
-    font-size: 17px;
-    font-weight: 300;
-    color: var(--ink-soft);
-    line-height: 1.7;
-    margin-bottom: 48px;
+    font-size: 17px; font-weight: 300;
+    color: var(--ink-soft); line-height: 1.7; margin-bottom: 48px;
   }
-  .moments-list {
-    text-align: left;
-    border-top: 1px solid var(--rule);
-  }
+  .moments-list { text-align: left; border-top: 1px solid var(--rule); }
   .moment {
-    padding: 20px 0;
-    border-bottom: 1px solid var(--rule);
-    opacity: 0;
-    transform: translateY(8px);
+    padding: 20px 0; border-bottom: 1px solid var(--rule);
+    opacity: 0; transform: translateY(8px);
     transition: opacity 0.5s ease, transform 0.5s ease;
   }
   .moment.visible { opacity: 1; transform: translateY(0); }
   .moment-date {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--ink-muted);
-    letter-spacing: 0.04em;
-    margin-bottom: 4px;
+    font-size: 12px; font-weight: 500;
+    color: var(--ink-muted); letter-spacing: 0.04em; margin-bottom: 4px;
   }
-  .moment-text {
-    font-size: 15px;
-    color: var(--ink);
-    font-weight: 300;
-  }
+  .moment-text { font-size: 15px; color: var(--ink); font-weight: 300; }
 
-  /* NO ACCOUNT */
+  /* ── NO ACCOUNT ── */
   .no-account {
-    background: var(--ink);
-    color: #fff;
-    padding: 96px 24px;
-    text-align: center;
+    background: var(--ink); color: #fff;
+    padding: 96px 24px; text-align: center;
   }
   .no-account h2 {
     font-family: 'Instrument Serif', serif;
     font-size: clamp(36px, 6vw, 64px);
-    letter-spacing: -1.5px;
-    line-height: 1.05;
-    margin-bottom: 20px;
+    letter-spacing: -1.5px; line-height: 1.05; margin-bottom: 20px;
   }
-  .no-account h2 em { font-style: italic; color: rgba(255,255,255,0.4); }
+  .no-account h2 em { font-style: italic; color: rgba(255,255,255,0.35); }
   .no-account p {
-    font-size: 16px;
-    font-weight: 300;
+    font-size: 16px; font-weight: 300;
     color: rgba(255,255,255,0.55);
-    max-width: 440px;
-    margin: 0 auto 48px;
-    line-height: 1.7;
+    max-width: 440px; margin: 0 auto 48px; line-height: 1.7;
   }
   .no-account-pills {
-    display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
-    margin-bottom: 56px;
+    display: flex; flex-wrap: wrap; gap: 10px;
+    justify-content: center; margin-bottom: 56px;
   }
   .pill {
-    font-size: 13px;
-    font-weight: 400;
+    font-size: 13px; font-weight: 400;
     color: rgba(255,255,255,0.6);
     border: 1px solid rgba(255,255,255,0.15);
-    padding: 8px 16px;
-    border-radius: 100px;
+    padding: 8px 16px; border-radius: 100px;
   }
   .btn-light {
     display: inline-flex; align-items: center; gap: 8px;
-    background: #fff;
-    color: var(--ink);
+    background: #fff; color: var(--ink);
     font-family: 'DM Sans', sans-serif;
-    font-size: 15px;
-    font-weight: 500;
-    padding: 14px 28px;
-    border-radius: 100px;
+    font-size: 15px; font-weight: 500;
+    padding: 14px 28px; border-radius: 100px;
     text-decoration: none;
     transition: opacity 0.15s, transform 0.15s;
   }
   .btn-light:hover { opacity: 0.88; transform: translateY(-1px); }
 
-  /* FOOTER */
+  /* ── FOOTER ── */
   footer {
     border-top: 1px solid var(--rule);
     padding: 32px 40px;
@@ -397,25 +423,23 @@
   }
   .footer-logo {
     font-family: 'Instrument Serif', serif;
-    font-size: 18px;
-    color: var(--ink);
+    font-size: 18px; color: var(--ink);
+    display: flex; align-items: center; gap: 8px;
   }
-  .footer-note {
-    font-size: 13px;
-    font-weight: 300;
-    color: var(--ink-muted);
-  }
+  .footer-note { font-size: 13px; font-weight: 300; color: var(--ink-muted); }
 
-  /* ANIMATIONS */
+  /* ── ANIMATIONS ── */
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(16px); }
     to   { opacity: 1; transform: translateY(0); }
   }
 
-  /* MOBILE */
+  /* ── MOBILE ── */
   @media (max-width: 600px) {
     nav { padding: 16px 20px; }
     .hero { padding: 100px 20px 60px; }
+    .phones-wrap { gap: 16px; }
+    .phone { width: 160px; border-radius: 26px; }
     .features { padding: 64px 20px; }
     .life-section { padding: 64px 20px; }
     .no-account { padding: 64px 20px; }
@@ -427,13 +451,22 @@
 <body>
 
 <nav id="nav">
-  <a href="#" class="nav-logo">Daymark</a>
+  <a href="#" class="nav-logo">
+    <div class="nav-logo-mark">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <polygon points="8,1 15,8 8,15 1,8" fill="none" stroke="white" stroke-width="1.8"/>
+        <polyline points="5,8 7,10.5 11,6" stroke="#409cff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <circle cx="8" cy="14.5" r="1" fill="#409cff"/>
+      </svg>
+    </div>
+    Daymark
+  </a>
   <a href="https://nickywinter.github.io/Daymark/" class="nav-cta">Try it free</a>
 </nav>
 
-<!-- HERO -->
+<!-- ── HERO ── -->
 <section class="hero">
-  <p class="hero-eyebrow">Habit tracker &amp; life journal</p>
+  <p class="hero-eyebrow">Habit tracker &amp; life journal — v4</p>
   <h1 class="hero-title">Mark your <em>day.</em><br>Then move on.</h1>
   <p class="hero-tagline">A quiet place to track your habits and remember your life.<br>No account. No cloud. Just yours.</p>
   <div class="hero-actions">
@@ -444,72 +477,186 @@
     <a href="#features" class="btn-secondary">See how it works ↓</a>
   </div>
 
-  <div class="phone-wrap">
-    <div class="phone">
-      <div class="phone-notch"></div>
-      <div class="phone-screen">
-        <div class="phone-header">Daymark</div>
-        <div class="phone-section">PERSONAL</div>
-        <div class="phone-habit"><div class="phone-dot done"></div> No Phone AM</div>
-        <div class="phone-habit"><div class="phone-dot"></div> Exercise</div>
-        <div class="phone-habit"><div class="phone-dot done"></div> Read</div>
-        <div class="phone-habit"><div class="phone-dot done"></div> Sleep 7+</div>
-        <div class="phone-habit"><div class="phone-dot"></div> No Alcohol</div>
-        <div class="phone-tabs">
-          <div class="phone-tab active">Log</div>
-          <div class="phone-tab">Progress</div>
-          <div class="phone-tab">Life</div>
-          <div class="phone-tab">Settings</div>
+  <!-- Dual phone mockups -->
+  <div class="phones-wrap">
+
+    <!-- Phone 1: Log tab -->
+    <div class="phone-group">
+      <div class="phone">
+        <div class="phone-notch"></div>
+        <div class="phone-screen log-screen">
+          <div class="phone-header">Daymark</div>
+
+          <div class="phone-day-nav">
+            <div class="phone-day-row">
+              <span class="phone-day-arrow">‹</span>
+              <div class="phone-day-info">
+                <div class="phone-day-date">21 Mar 2026</div>
+                <div class="phone-day-sub">4 of 6 done</div>
+              </div>
+              <span class="phone-day-arrow">›</span>
+            </div>
+            <div class="phone-progress-bar">
+              <div class="phone-progress-fill" id="pf1" style="width:0%"></div>
+            </div>
+          </div>
+
+          <div class="phone-section-label" style="color:#007AFF">HEALTH</div>
+          <div class="phone-habit">
+            <div class="phone-dot done"></div>
+            <div class="phone-habit-info"><span class="phone-habit-name">Exercise</span></div>
+          </div>
+          <div class="phone-habit">
+            <div class="phone-dot done"></div>
+            <div class="phone-habit-info"><span class="phone-habit-name">Sleep 7+</span></div>
+          </div>
+          <div class="phone-habit">
+            <div class="phone-dot"></div>
+            <div class="phone-habit-info">
+              <span class="phone-habit-name">Cold Shower</span>
+            </div>
+            <span class="phone-skip">○</span>
+          </div>
+
+          <div class="phone-section-label" style="color:#ff9500">WORK</div>
+          <div class="phone-habit">
+            <div class="phone-dot done-orange"></div>
+            <div class="phone-habit-info"><span class="phone-habit-name">Plan Day</span></div>
+          </div>
+          <div class="phone-habit">
+            <div class="phone-dot"></div>
+            <div class="phone-habit-info">
+              <span class="phone-habit-name">Read</span>
+              <span class="phone-freq">2/3 this week</span>
+            </div>
+          </div>
+
+          <div class="phone-section-label" style="color:#34c759">PERSONAL</div>
+          <div class="phone-habit">
+            <div class="phone-dot done-green"></div>
+            <div class="phone-habit-info"><span class="phone-habit-name">No Alcohol</span></div>
+          </div>
+
+          <div class="phone-tabs">
+            <div class="phone-tab active"><span class="phone-tab-icon">◆</span>Log</div>
+            <div class="phone-tab"><span class="phone-tab-icon">📊</span>Progress</div>
+            <div class="phone-tab"><span class="phone-tab-icon">📖</span>Life</div>
+            <div class="phone-tab"><span class="phone-tab-icon">🔥</span>Stats</div>
+            <div class="phone-tab"><span class="phone-tab-icon">⚙️</span>Settings</div>
+          </div>
         </div>
       </div>
+      <div class="phone-label">Daily log</div>
     </div>
+
+    <!-- Phone 2: Stats tab -->
+    <div class="phone-group">
+      <div class="phone">
+        <div class="phone-notch"></div>
+        <div class="phone-screen stats-screen">
+          <div class="phone-header">Daymark</div>
+
+          <div class="phone-stats-header">
+            <span class="phone-stats-nav">‹</span>
+            <span class="phone-stats-year">2026</span>
+            <span class="phone-stats-nav">›</span>
+          </div>
+
+          <div class="phone-mini-scores">
+            <div class="phone-mini-metric">
+              <div class="phone-mini-val">78%</div>
+              <div class="phone-mini-lbl">Month</div>
+            </div>
+            <div class="phone-mini-metric">
+              <div class="phone-mini-val">14</div>
+              <div class="phone-mini-lbl">Streak</div>
+            </div>
+            <div class="phone-mini-metric">
+              <div class="phone-mini-val">31</div>
+              <div class="phone-mini-lbl">Best</div>
+            </div>
+          </div>
+
+          <div class="phone-heatmap-wrap">
+            <div class="phone-heatmap-title">Year Overview — all habits</div>
+            <div class="phone-heatmap" id="heatmap-render"></div>
+          </div>
+
+          <div class="phone-bar-card">
+            <div class="phone-bar-title">Monthly scores</div>
+            <div class="phone-bars" id="bar-render"></div>
+          </div>
+
+          <div class="phone-tabs">
+            <div class="phone-tab"><span class="phone-tab-icon">◆</span>Log</div>
+            <div class="phone-tab"><span class="phone-tab-icon">📊</span>Progress</div>
+            <div class="phone-tab"><span class="phone-tab-icon">📖</span>Life</div>
+            <div class="phone-tab active"><span class="phone-tab-icon">🔥</span>Stats</div>
+            <div class="phone-tab"><span class="phone-tab-icon">⚙️</span>Settings</div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">Stats &amp; heatmap</div>
+    </div>
+
   </div>
 </section>
 
-<!-- PRIVACY STRIP -->
+<!-- ── PRIVACY STRIP ── -->
 <div class="privacy-strip">
   <h2>Everything stays on your phone.</h2>
-  <p>No servers. No sign-up. No one reading your data. Daymark works entirely from your device.</p>
+  <p>No servers. No sign-up. No one reading your data. Daymark works entirely from your device — online or off.</p>
 </div>
 
-<!-- FEATURES -->
+<!-- ── FEATURES ── -->
 <section class="features" id="features">
-  <p class="features-label">What it does</p>
+  <p class="features-label">What's in v4</p>
   <div class="features-grid">
+
     <div class="feature">
-      <div class="feature-icon">◉</div>
-      <h3>Daily habits</h3>
-      <p>Log personal and work habits each morning. Separate tracks, automatic weekday/weekend rules.</p>
-    </div>
-    <div class="feature">
-      <div class="feature-icon">◎</div>
-      <h3>Life journal</h3>
-      <p>One line per day. A quiet record of the things worth remembering — milestones, walks, ordinary moments.</p>
-    </div>
-    <div class="feature">
+      <div class="feature-new">New in v4</div>
       <div class="feature-icon">◈</div>
-      <h3>Progress &amp; streaks</h3>
-      <p>Monthly score, current streak, weight tracking, and a full month grid — at a glance.</p>
+      <h3>Custom categories</h3>
+      <p>Create your own habit categories — Health, Work, Family, Finance — each with its own colour. Your habits, your structure.</p>
     </div>
+
     <div class="feature">
-      <div class="feature-icon">◇</div>
-      <h3>Goals</h3>
-      <p>Set annual goals, track progress in plain text, and mark them done when you get there.</p>
+      <div class="feature-new">New in v4</div>
+      <div class="feature-icon">◉</div>
+      <h3>Habit frequency</h3>
+      <p>Set habits to daily, weekdays only, weekends, or a target like 3× a week. Daymark tracks the count and tells you where you stand.</p>
     </div>
+
+    <div class="feature">
+      <div class="feature-new">New in v4</div>
+      <div class="feature-icon">▦</div>
+      <h3>Yearly heatmap</h3>
+      <p>See your whole year at once — every day colour-coded by completion. Per-habit breakdowns show your all-time rate, current run, and best streak.</p>
+    </div>
+
+    <div class="feature">
+      <div class="feature-new">New in v4</div>
+      <div class="feature-icon">◎</div>
+      <h3>Weekly review</h3>
+      <p>A prompt on Friday to reflect on your week. What went well, what you want to change. Stored alongside your daily moments.</p>
+    </div>
+
     <div class="feature">
       <div class="feature-icon">◻</div>
       <h3>Offline first</h3>
-      <p>Installs like an app. Works without internet. Your data lives in your browser — nowhere else.</p>
+      <p>Installs like a native app. Works without internet. Your data lives in your browser — no account, no server, no subscription.</p>
     </div>
+
     <div class="feature">
       <div class="feature-icon">◬</div>
-      <h3>Backup &amp; restore</h3>
-      <p>Export a JSON backup whenever you want. Import it on any device. Simple and fully in your control.</p>
+      <h3>Backup &amp; export</h3>
+      <p>Export a full JSON backup or a CSV for spreadsheets — whenever you want, with a date-stamped filename. Fully in your control.</p>
     </div>
+
   </div>
 </section>
 
-<!-- LIFE SECTION -->
+<!-- ── LIFE SECTION ── -->
 <section class="life-section">
   <h2>Your days are worth <em>remembering.</em></h2>
   <p>Most apps track what you did. Daymark also helps you remember what happened — a quiet log of the days that made up your year.</p>
@@ -529,7 +676,7 @@
   </div>
 </section>
 
-<!-- NO ACCOUNT -->
+<!-- ── NO ACCOUNT ── -->
 <section class="no-account" id="try">
   <h2>No account.<br><em>No compromise.</em></h2>
   <p>Your habits, your weight, your memories. None of it leaves your phone unless you choose to export it.</p>
@@ -546,7 +693,16 @@
 </section>
 
 <footer>
-  <div class="footer-logo">Daymark</div>
+  <div class="footer-logo">
+    <div class="nav-logo-mark">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+        <polygon points="8,1 15,8 8,15 1,8" fill="none" stroke="white" stroke-width="1.8"/>
+        <polyline points="5,8 7,10.5 11,6" stroke="#409cff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <circle cx="8" cy="14.5" r="1" fill="#409cff"/>
+      </svg>
+    </div>
+    Daymark
+  </div>
   <div class="footer-note">Stored on your device. Nowhere else.</div>
 </footer>
 
@@ -563,11 +719,87 @@
       if (entry.isIntersecting) entry.target.classList.add('visible');
     });
   }, { threshold: 0.2 });
-
   document.querySelectorAll('.moment').forEach((el, i) => {
-    el.style.transitionDelay = `${i * 0.1}s`;
+    el.style.transitionDelay = `${i * 0.12}s`;
     observer.observe(el);
   });
+
+  // Animate progress bar on load
+  setTimeout(() => {
+    const pf = document.getElementById('pf1');
+    if (pf) pf.style.width = '67%';
+  }, 800);
+
+  // Generate heatmap mockup
+  const heatmapEl = document.getElementById('heatmap-render');
+  if (heatmapEl) {
+    const months = ['J','F','M','A','M','J','J','A','S','O','N','M'];
+    // Realistic-ish pattern data per month (values 0-4 per day)
+    const patterns = [
+      [3,4,2,3,4,4,1,3,4,3,2,4,4,3,3,4,2,1,3,4,4,3,2,3,4,4,3,4,2,3,0],
+      [4,3,4,4,2,3,4,4,3,4,4,2,3,4,4,3,2,4,4,3,4,4,3,4,4,3,4,2,0,0,0],
+      [3,4,4,3,4,2,3,4,4,3,4,4,3,4,4,3,2,3,4,4,3,4,4,3,4,4,3,4,4,3,4],
+      [2,3,4,4,3,4,4,3,2,3,4,4,3,4,3,3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,0],
+      [4,4,3,4,4,3,4,4,3,4,4,3,4,4,2,3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,3],
+      [3,4,4,3,4,3,2,3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,3,4,0],
+      [4,4,3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,3,4],
+      [3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,3],
+      [4,4,3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,3,0],
+      [3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,3],
+      [4,4,3,4,4,3,4,4,3,4,3,2,3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,3,4,4,0],
+      [3,4,4,3,4,4,3,2,1,2,3,4,4,3,4,4,3,4,4,3,0,0,0,0,0,0,0,0,0,0,0],
+    ];
+    const daysInMonth = [31,28,31,30,31,30,31,31,30,31,30,31];
+    const colorClass = ['','hm-1','hm-2','hm-3','hm-4'];
+
+    months.forEach((m, mi) => {
+      const col = document.createElement('div');
+      col.className = 'phone-heatmap-month';
+      const lbl = document.createElement('div');
+      lbl.className = 'phone-hm-label';
+      lbl.textContent = m;
+      col.appendChild(lbl);
+      const grid = document.createElement('div');
+      grid.className = 'phone-hm-grid';
+      for (let d = 0; d < daysInMonth[mi]; d++) {
+        const cell = document.createElement('div');
+        const v = patterns[mi][d] || 0;
+        cell.className = 'phone-hm-cell ' + (colorClass[v] || '');
+        grid.appendChild(cell);
+      }
+      // Pad to fill grid
+      const remaining = (5 - (daysInMonth[mi] % 5)) % 5;
+      for (let p = 0; p < remaining; p++) {
+        const pad = document.createElement('div');
+        pad.className = 'phone-hm-cell hm-x';
+        grid.appendChild(pad);
+      }
+      col.appendChild(grid);
+      heatmapEl.appendChild(col);
+    });
+  }
+
+  // Generate bar chart mockup
+  const barEl = document.getElementById('bar-render');
+  if (barEl) {
+    const scores = [72, 68, 81, 75, 84, 79, 88, 83, 91, 86, 78, 0];
+    const labels = ['J','F','M','A','M','J','J','A','S','O','N','D'];
+    const maxH = 36;
+    scores.forEach((s, i) => {
+      const col = document.createElement('div');
+      col.className = 'phone-bar-col';
+      const bar = document.createElement('div');
+      bar.className = 'phone-bar';
+      bar.style.height = s ? Math.max(2, Math.round(s / 100 * maxH)) + 'px' : '2px';
+      bar.style.opacity = s ? (0.4 + s * 0.006).toString() : '0.15';
+      const lbl = document.createElement('div');
+      lbl.className = 'phone-bar-lbl';
+      lbl.textContent = labels[i];
+      col.appendChild(bar);
+      col.appendChild(lbl);
+      barEl.appendChild(col);
+    });
+  }
 </script>
 
 </body>
