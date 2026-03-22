@@ -691,6 +691,10 @@ function importJSON(file) {
         if (!meta.trackers) {
           meta.trackers = [{ id: "t0", name: "Weight", unit: meta.weightUnit||"kg", baseline: meta.baselineWeight||"" }];
         }
+        // Ensure books field exists (v4.0-4.4 backups won't have it)
+        if (!meta.books) meta.books = [];
+        // Ensure weeklyReviews exists
+        if (!meta.weeklyReviews) meta.weeklyReviews = {};
         // Migrate old weight keys to trackers format
         migrateStoreToTrackers();
       } else if (parsed.store) {
