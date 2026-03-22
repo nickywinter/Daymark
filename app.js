@@ -610,7 +610,7 @@ function bookGoalProgress() {
   // Find goals that mention "book" and link count automatically
   const year     = DEFAULT_LOG_DATE.getFullYear();
   const finished = booksFinishedThisYear(year).length;
-  const goal     = meta.goals.find(g => /book/i.test(g.text) && !g.done);
+  const goal     = meta.goals.find(g => /book/i.test(g.text)); // show regardless of done status
   return { finished, goal };
 }
 
