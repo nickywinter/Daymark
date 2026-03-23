@@ -214,21 +214,29 @@ label { font-size: 13px; color: var(--muted); margin-top: 6px; display: block; }
 .day-picker { display: flex; flex-direction: column; gap: 6px; }
 .day-picker-row {
   display: flex; align-items: center; gap: 12px;
-  padding: 12px; border-radius: 10px; cursor: pointer;
-  font-size: 15px; border: 2px solid var(--border);
+  padding: 13px 14px; border-radius: 10px; cursor: pointer;
+  font-size: 15px; font-weight: 500;
+  border: 2px solid var(--border);
   background: var(--card);
   -webkit-tap-highlight-color: transparent;
   transition: border-color .15s, background .15s;
   user-select: none;
 }
-.day-picker-row:has(input:checked) {
+.day-picker-row.day-selected {
   border-color: var(--accent);
-  background: var(--blue-soft, rgba(0,122,255,0.06));
+  background: rgba(0,122,255,0.08);
+  color: var(--accent);
 }
-.day-picker-row input[type="checkbox"] {
-  width: 20px; height: 20px; margin: 0; flex-shrink: 0;
-  accent-color: var(--accent); cursor: pointer;
-  pointer-events: none;
+.day-tick {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: transparent;
+  flex-shrink: 0; transition: all .15s;
+}
+.day-tick-on {
+  background: var(--accent); border-color: var(--accent);
+  color: #fff;
 }
 
 /* ── Category badge ── */

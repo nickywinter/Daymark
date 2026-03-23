@@ -1100,14 +1100,16 @@ function openDayPickerDialog(habitId, habitName, categoryId, selectedDays) {
     {n:3,l:"Wednesday"},{n:4,l:"Thursday"},{n:5,l:"Friday"},{n:6,l:"Saturday"}
   ];
   const checkboxes = days.map(d => `
-    <div class="day-picker-row" onclick="this.querySelector('input').click();event.stopPropagation()">
-      <input type="checkbox" id="dp-${d.n}" value="${d.n}" ${selectedDays.includes(d.n)?"checked":""}
-        onclick="event.stopPropagation()">
-      <label for="dp-${d.n}" style="flex:1;cursor:pointer;pointer-events:none">${d.l}</label>
+    <div class="day-picker-row ${selectedDays.includes(d.n)?"day-selected":""}"
+      id="dp-row-${d.n}"
+      onclick="toggleDayRow(${d.n})">
+      <div class="day-tick ${selectedDays.includes(d.n)?"day-tick-on":""}" id="dp-tick-${d.n}">✓</div>
+      <span>${d.l}</span>
+      <input type="checkbox" id="dp-${d.n}" value="${d.n}" ${selectedDays.includes(d.n)?"checked":""} style="display:none">
     </div>`).join("");
 
   showCustomDialog("Choose days", `
-    <div class="muted" style="margin-bottom:10px">Which days should this habit appear?</div>
+    <div class="muted" style="margin-bottom:10px">Tap to select the days this habit appears.</div>
     <div class="day-picker">${checkboxes}</div>
   `, [
     { label: "Save", action: () => {
@@ -1128,6 +1130,21 @@ function openDayPickerDialog(habitId, habitName, categoryId, selectedDays) {
     }},
     { label: "Cancel", action: () => { closeDialog(); if (!habitId) renderSettings(); } }
   ]);
+}
+
+function toggleDayRow(n) {
+  const row  = document.getElementById("dp-row-"+n);
+  const tick = document.getElementById("dp-tick-"+n);
+  const cb   = document.getElementById("dp-"+n);
+  if (!row || !cb) return;
+  cb.checked = !cb.checked;
+  if (cb.checked) {
+    row.classList.add("day-selected");
+    tick.classList.add("day-tick-on");
+  } else {
+    row.classList.remove("day-selected");
+    tick.classList.remove("day-tick-on");
+  }
 }
 
 // ─── Tracker dialogs ─────────────────────────────────────────────────────────
