@@ -1,6 +1,6 @@
 // ─── Version & Constants ──────────────────────────────────────────────────────
 
-const APP_VERSION = "4.6";
+const APP_VERSION = "4.7";
 const STORE_KEY        = "daymarkV4";
 const META_KEY         = "daymarkMetaV4";
 const AUTO_BACKUP_KEY  = "daymarkAutoBackup"; // stores timestamp of last auto-backup
@@ -253,45 +253,26 @@ function activeHabits()    { return meta.habits.filter(h=>!h.archived); }
 function archivedHabits()  { return meta.habits.filter(h=>h.archived); }
 
 // Is this habit expected on this date given its frequency?
+// specificdays uses days array: [0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat]
 function habitActiveOnDate(habit, dateObj) {
   const f = habit.frequency || { type: "daily" };
   switch(f.type) {
-    case "daily":    return true;
-    case "weekdays": return isWeekday(dateObj);
-    case "weekends": return isWeekend(dateObj);
-    case "xperweek": return true; // always shown; completion is based on weekly count
-    default:         return true;
+    case "daily":        return true;
+    case "weekdays":     return isWeekday(dateObj);
+    case "weekends":     return isWeekend(dateObj);
+    case "specificdays": return Array.isArray(f.days) && f.days.includes(dateObj.getDay());
+    default:             return true;
   }
-}
-
-// For x-per-week habits: how many times done this week as of dateObj?
-function weeklyDoneCount(habitId, dateObj) {
-  const wk = weekKey(dateObj);
-  let count = 0;
-  // Scan 7 days around dateObj's week
-  for (let offset = -6; offset <= 0; offset++) {
-    const d = new Date(dateObj); d.setDate(d.getDate()+offset);
-    if (weekKey(d) !== wk) continue;
-    const mk  = monthKey(d);
-    const day = d.getDate();
-    const md  = monthData(mk);
-    if (md.days[day]?.includes(habitId)) count++;
-  }
-  return count;
 }
 
 // Is habit "satisfied" for this date? (used for streak & score)
 function habitSatisfied(habitId, key, day) {
-  const md     = monthData(key);
-  const habit  = getHabit(habitId);
+  const md      = monthData(key);
+  const habit   = getHabit(habitId);
   if (!habit) return false;
   const dateObj = getDateForDay(key, day);
   if (!habitActiveOnDate(habit, dateObj)) return true; // not expected = counts as satisfied
-  if (md.skips[day]?.includes(habitId)) return true;   // explicitly skipped
-  const f = habit.frequency || { type: "daily" };
-  if (f.type === "xperweek") {
-    return weeklyDoneCount(habitId, dateObj) >= (f.count||1);
-  }
+  if (md.skips[day]?.includes(habitId)) return true;   // explicitly skipped (rest day)
   return md.days[day]?.includes(habitId) || false;
 }
 

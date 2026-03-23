@@ -25,14 +25,19 @@ function monthNavBar(key, prevFn, nextFn, label) {
   </div>`;
 }
 
+const DAY_NAMES = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const DAY_NAMES_FULL = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
 function freqLabel(f) {
   if (!f) return "Daily";
   switch(f.type) {
-    case "daily":    return "Daily";
-    case "weekdays": return "Weekdays";
-    case "weekends": return "Weekends";
-    case "xperweek": return `${f.count||1}× / week`;
-    default:         return "Daily";
+    case "daily":        return "Daily";
+    case "weekdays":     return "Weekdays";
+    case "weekends":     return "Weekends";
+    case "specificdays": return Array.isArray(f.days) && f.days.length
+      ? f.days.sort((a,b)=>a-b).map(d=>DAY_NAMES[d]).join(", ")
+      : "No days set";
+    default:             return "Daily";
   }
 }
 
@@ -99,18 +104,22 @@ function renderLog() {
       const isDone    = md.days[day]?.includes(h.id);
       const isSkipped = md.skips[day]?.includes(h.id);
       const satisfied = habitSatisfied(h.id, key, day);
+      // freqNote for specific days — show day abbreviations
       const f = h.frequency;
       let freqNote = "";
-      if (f?.type === "xperweek") {
-        const wkDone = weeklyDoneCount(h.id, dateObj);
-        freqNote = `<span class="freq-note">${wkDone}/${f.count||1} this week</span>`;
+      if (f?.type === "specificdays" && f.days?.length) {
+        freqNote = `<span class="freq-note">${f.days.sort((a,b)=>a-b).map(d=>DAY_NAMES[d]).join("·")}</span>`;
       }
-      html += `<div class="habit ${isSkipped?'habit-skipped':''} ${satisfied&&!isSkipped?'habit-satisfied':''}">
-        <div class="dot ${isDone?'done':''} ${isSkipped?'skipped':''}" onclick="toggleHabit('${h.id}','${key}',${day})"></div>
-        <div class="habit-info" onclick="toggleHabit('${h.id}','${key}',${day})">
-          <div class="habit-name-row">${escapeHtml(h.name)}${freqNote}</div>
+      html += `<div class="habit-wrap" data-habit-id="${h.id}" data-key="${key}" data-day="${day}">
+        <div class="habit ${isSkipped?'habit-skipped':''} ${satisfied&&!isSkipped?'habit-satisfied':''}">
+          <div class="dot ${isDone?'done':''} ${isSkipped?'skipped':''}" onclick="toggleHabit('${h.id}','${key}',${day})"></div>
+          <div class="habit-info" onclick="toggleHabit('${h.id}','${key}',${day})">
+            <div class="habit-name-row">${escapeHtml(h.name)}${freqNote}</div>
+          </div>
         </div>
-        <button class="skip-btn ${isSkipped?'active':''}" onclick="toggleSkip('${h.id}','${key}',${day})" title="${isSkipped?'Unskip':'Rest day'}">○</button>
+        <div class="habit-swipe-action ${isSkipped?'active':''}">
+          <button onclick="toggleSkip('${h.id}','${key}',${day})">${isSkipped?'Unskip':'Rest'}</button>
+        </div>
       </div>`;
     });
   });
@@ -139,6 +148,43 @@ function renderLog() {
 
   document.getElementById("content").innerHTML = html;
   maybeShowFirstTip();
+  initSwipeToSkip();
+}
+
+function initSwipeToSkip() {
+  document.querySelectorAll(".habit-wrap").forEach(wrap => {
+    let startX = 0;
+    let isDragging = false;
+
+    wrap.addEventListener("touchstart", e => {
+      startX = e.touches[0].clientX;
+      isDragging = false;
+    }, { passive: true });
+
+    wrap.addEventListener("touchmove", e => {
+      const dx = e.touches[0].clientX - startX;
+      if (Math.abs(dx) > 8) isDragging = true;
+      if (dx < -20) {
+        wrap.classList.add("swiped");
+      } else if (dx > 20) {
+        wrap.classList.remove("swiped");
+      }
+    }, { passive: true });
+
+    wrap.addEventListener("touchend", () => {
+      // If didn't swipe enough, snap back
+      if (!wrap.classList.contains("swiped") && isDragging) {
+        wrap.classList.remove("swiped");
+      }
+    });
+  });
+
+  // Tap anywhere else closes open swipes
+  document.getElementById("content")?.addEventListener("touchstart", e => {
+    if (!e.target.closest(".habit-wrap")) {
+      document.querySelectorAll(".habit-wrap.swiped").forEach(w => w.classList.remove("swiped"));
+    }
+  }, { passive: true });
 }
 
 function logPrevDay() {
@@ -785,16 +831,10 @@ function renderHabitsSection() {
       <option value="daily">Daily</option>
       <option value="weekdays">Weekdays only</option>
       <option value="weekends">Weekends only</option>
-      <option value="xperweek">X times per week</option>
+      <option value="specificdays">Specific days</option>
     </select>
-    <div id="new-habit-xcount" style="display:none;margin-top:8px">
-      <input type="number" id="new-habit-count" min="1" max="7" value="3" placeholder="Times per week">
-    </div>
     <button class="btn" onclick="submitAddHabit()">Add Habit</button>
   </div>`;
-
-  // Show/hide xperweek count
-  html += `<script>document.getElementById('new-habit-freq')?.addEventListener('change',function(){document.getElementById('new-habit-xcount').style.display=this.value==='xperweek'?'block':'none'});<\/script>`;
   return html;
 }
 
@@ -898,7 +938,7 @@ function openEditHabitDialog(id) {
   const f   = h.frequency || { type: "daily" };
   const catOpts = meta.categories.map(c=>`<option value="${c.id}" ${c.id===h.categoryId?"selected":""}>${escapeHtml(c.name)}</option>`).join("");
   const freqOpts = [
-    ["daily","Daily"],["weekdays","Weekdays only"],["weekends","Weekends only"],["xperweek","X times per week"]
+    ["daily","Daily"],["weekdays","Weekdays only"],["weekends","Weekends only"],["specificdays","Specific days"]
   ].map(([v,l])=>`<option value="${v}" ${v===f.type?"selected":""}>${l}</option>`).join("");
 
   showCustomDialog("Edit Habit", `
@@ -907,10 +947,8 @@ function openEditHabitDialog(id) {
     <label style="margin-top:8px;display:block">Category</label>
     <select id="ed-cat">${catOpts}</select>
     <label style="margin-top:8px;display:block">Frequency</label>
-    <select id="ed-freq" onchange="document.getElementById('ed-xcount').style.display=this.value==='xperweek'?'block':'none'">${freqOpts}</select>
-    <div id="ed-xcount" style="display:${f.type==='xperweek'?'block':'none'};margin-top:8px">
-      <input type="number" id="ed-count" min="1" max="7" value="${f.count||3}" placeholder="Times per week">
-    </div>
+    <select id="ed-freq">${freqOpts}</select>
+    ${f.type==="specificdays" ? `<div class="muted" style="margin-top:6px;font-size:12px">Current days: ${freqLabel(f)} — save first, then edit to change days.</div>` : ""}
   `, [
     { label: "Save", action: () => {
       const name = document.getElementById("ed-name")?.value?.trim();
@@ -918,11 +956,16 @@ function openEditHabitDialog(id) {
       renameHabit(id, name);
       updateHabitCategory(id, document.getElementById("ed-cat").value);
       const ftype = document.getElementById("ed-freq").value;
-      updateHabitFrequency(id, ftype==="xperweek"
-        ? { type:"xperweek", count: parseInt(document.getElementById("ed-count")?.value)||3 }
-        : { type: ftype });
+      if (ftype === "specificdays" && f.type !== "specificdays") {
+        // Switching to specific days — open day picker
+        closeDialog();
+        openDayPickerDialog(id, name, null);
+        return;
+      }
+      updateHabitFrequency(id, { type: ftype });
       renderSettings();
     }},
+    { label: "Change days", action: () => { closeDialog(); openDayPickerDialog(id, h.name, null, f.days||[]); }, },
     { label: "Cancel", action: closeDialog }
   ]);
 }
@@ -1030,10 +1073,12 @@ function submitAddHabit() {
   if (meta.habits.some(h=>h.name.toLowerCase()===name.toLowerCase())) { showToast("That habit name already exists", null); return; }
   const catId = document.getElementById("new-habit-cat")?.value || meta.categories[0]?.id;
   const ftype = document.getElementById("new-habit-freq")?.value || "daily";
-  const freq  = ftype==="xperweek"
-    ? { type:"xperweek", count: parseInt(document.getElementById("new-habit-count")?.value)||3 }
-    : { type: ftype };
-  addHabit(name, catId, freq);
+  if (ftype === "specificdays") {
+    // Open day picker dialog before adding
+    openDayPickerDialog(null, name, catId);
+    return;
+  }
+  addHabit(name, catId, { type: ftype });
   renderSettings();
   showToast(`"${name}" added`, null);
 }
@@ -1044,6 +1089,44 @@ function submitAddCategory() {
   const color = document.getElementById("new-cat-color")?.value || CATEGORY_COLORS[0];
   addCategory(name, color);
   renderSettings();
+}
+
+// ─── Day Picker Dialog ───────────────────────────────────────────────────────
+
+function openDayPickerDialog(habitId, habitName, categoryId, selectedDays) {
+  selectedDays = selectedDays || [];
+  const days = [
+    {n:0,l:"Sunday"},{n:1,l:"Monday"},{n:2,l:"Tuesday"},
+    {n:3,l:"Wednesday"},{n:4,l:"Thursday"},{n:5,l:"Friday"},{n:6,l:"Saturday"}
+  ];
+  const checkboxes = days.map(d => `
+    <label class="day-picker-row">
+      <input type="checkbox" value="${d.n}" ${selectedDays.includes(d.n)?"checked":""}>
+      ${d.l}
+    </label>`).join("");
+
+  showCustomDialog("Choose days", `
+    <div class="muted" style="margin-bottom:10px">Which days should this habit appear?</div>
+    <div class="day-picker">${checkboxes}</div>
+  `, [
+    { label: "Save", action: () => {
+      const checked = [...document.querySelectorAll(".day-picker input:checked")]
+        .map(el => parseInt(el.value));
+      if (!checked.length) { showToast("Select at least one day", null); return; }
+      const freq = { type: "specificdays", days: checked };
+      if (habitId) {
+        // Editing existing habit
+        updateHabitFrequency(habitId, freq);
+        renderSettings();
+      } else {
+        // New habit — categoryId was passed in
+        addHabit(habitName, categoryId, freq);
+        renderSettings();
+        showToast(`"${habitName}" added`, null);
+      }
+    }},
+    { label: "Cancel", action: () => { closeDialog(); if (!habitId) renderSettings(); } }
+  ]);
 }
 
 // ─── Tracker dialogs ─────────────────────────────────────────────────────────

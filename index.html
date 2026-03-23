@@ -185,11 +185,43 @@ label { font-size: 13px; color: var(--muted); margin-top: 6px; display: block; }
 }
 .dot.done    { background: var(--accent); border-color: var(--accent); }
 .dot.skipped { background: var(--muted);  border-color: var(--muted); opacity: .5; }
-.skip-btn {
-  background: none; border: 1px solid var(--border); border-radius: 8px;
-  color: var(--muted); font-size: 14px; padding: 4px 8px; cursor: pointer;
+/* ── Swipe to skip ── */
+.habit-wrap {
+  position: relative; overflow: hidden;
+  border-radius: 12px; margin-bottom: 8px;
 }
-.skip-btn.active { background: var(--btn-sec); color: var(--accent); border-color: var(--accent); }
+.habit-wrap .habit {
+  border-radius: 12px; margin-bottom: 0;
+  transform: translateX(0);
+  transition: transform .2s ease;
+  position: relative; z-index: 1;
+}
+.habit-wrap.swiped .habit { transform: translateX(-72px); }
+.habit-swipe-action {
+  position: absolute; right: 0; top: 0; bottom: 0;
+  width: 72px; display: flex; align-items: center; justify-content: center;
+  background: var(--muted); border-radius: 0 12px 12px 0;
+  z-index: 0;
+}
+.habit-swipe-action.active { background: var(--accent); }
+.habit-swipe-action button {
+  background: none; border: none; color: #fff;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  width: 100%; height: 100%;
+}
+
+/* ── Day picker ── */
+.day-picker { display: flex; flex-direction: column; gap: 4px; }
+.day-picker-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 8px; border-radius: 8px; cursor: pointer;
+  font-size: 15px; border: 1px solid var(--border);
+  background: var(--card);
+}
+.day-picker-row input[type="checkbox"] {
+  width: 18px; height: 18px; margin: 0; flex-shrink: 0;
+  accent-color: var(--accent);
+}
 
 /* ── Category badge ── */
 .cat-badge {
