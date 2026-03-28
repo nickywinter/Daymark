@@ -936,6 +936,11 @@ function renderBackupSection() {
     <div class="muted" style="margin-top:8px;margin-bottom:8px">Import backup (replaces all data)</div>
     <input type="file" accept=".json" onchange="importJSON(this.files[0]);this.value=''">
     <button class="btn secondary" onclick="checkStorageUsage()" style="margin-top:12px">Check Storage Usage</button>
+    <h3>Feedback</h3>
+    <a href="mailto:hello@daymark.ink?subject=Daymark feedback" class="btn secondary"
+      style="display:block;text-align:center;text-decoration:none;margin-top:0">
+      Send feedback ✉️
+    </a>
     <div class="muted" style="margin-top:12px">Daymark v${APP_VERSION}</div>
   </div>`;
 }
