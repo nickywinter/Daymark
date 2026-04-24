@@ -637,7 +637,7 @@ function openFinishBookDialog(id) {
 function openEditBookDialog(id) {
   const b = meta.books.find(x=>x.id===id); if (!b) return;
   const ratingHtml = [1,2,3,4,5].map(n =>
-    `<button id="eb-star-${n}" onclick="(function(){[1,2,3,4,5].forEach(i=>document.getElementById('eb-star-'+i).classList.toggle('star-active',i<=${n}));document.getElementById('eb-rating').value='${n}';})()" class="star-btn ${(b.rating||0)>=n?'star-active':''}"">★</button>`
+    `<button id="eb-star-${n}" onclick="(function(){[1,2,3,4,5].forEach(i=>document.getElementById('eb-star-'+i).classList.toggle('star-active',i<=${n}));document.getElementById('eb-rating').value='${n}';})()" class="star-btn ${(b.rating||0)>=n?'star-active':''}">★</button>`
   ).join("");
   showCustomDialog("Edit Book", `
     <label>Title</label>
