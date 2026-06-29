@@ -1047,7 +1047,7 @@ function renderBackupSection() {
     <div class="auto-backup-status">
       <div class="auto-backup-icon">📦</div>
       <div class="auto-backup-info">
-        <div class="auto-backup-title">Automatic weekly backup</div>
+        <div class="auto-backup-title">Backup reminder</div>
         <div class="auto-backup-sub">${autoBackupStatus()}</div>
       </div>
     </div>

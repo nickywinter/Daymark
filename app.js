@@ -1,7 +1,7 @@
 // Daymark © 2026 Nick Winter. All rights reserved.
 // ─── Version & Constants ──────────────────────────────────────────────────────
 
-const APP_VERSION = "4.8";
+const APP_VERSION = "4.9";
 const STORE_KEY        = "daymarkV4";
 const META_KEY         = "daymarkMetaV4";
 const AUTO_BACKUP_KEY  = "daymarkAutoBackup"; // stores timestamp of last auto-backup
@@ -547,13 +547,68 @@ function trackerSummary(trackerId, key) {
   return { entries, current, baseline, change, data };
 }
 
-function exportJSON() {
+async function saveTextFile(filename, mimeType, text, opts = {}) {
+  const quiet = opts.quiet === true;
+  const blob = new Blob([text], { type: mimeType });
+
+  // iPhone / iPad Safari and installed PWAs are much more reliable with
+  // the native share sheet than with invisible download links. This gives
+  // the user a proper "Save to Files" destination picker.
+  try {
+    if (!quiet && typeof File !== "undefined" && navigator.share && navigator.canShare) {
+      const file = new File([blob], filename, { type: mimeType });
+      if (navigator.canShare({ files: [file] })) {
+        showToast("Choose Save to Files in the share sheet", null);
+        await navigator.share({
+          files: [file],
+          title: filename,
+          text: "Daymark export"
+        });
+        return true;
+      }
+    }
+  } catch (err) {
+    if (err?.name === "AbortError") return false;
+    // Fall through to normal browser download below.
+  }
+
+  // Desktop and Android fallback. Blob URLs work better than data: URLs and
+  // the link must be attached to the page for some browsers to honour it.
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      a.remove();
+    }, 2000);
+    if (!quiet) showToast("Export created — check Downloads", null);
+    return true;
+  } catch (err) {
+    if (!quiet) {
+      showDialog(
+        "Export failed",
+        "Your browser blocked the file save. Open Daymark in Safari and tap export again.",
+        [{ label: "OK", action: closeDialog }]
+      );
+    }
+    return false;
+  }
+}
+
+async function exportJSON() {
   const payload = { version: APP_VERSION, store, meta };
-  const uri = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload));
-  const a = document.createElement("a");
-  a.href = uri; a.download = `daymark-backup-${formatTimestamp()}.json`; a.click();
-  // Reset auto-backup timer so we don't double-export shortly after
-  resetAutoBackupTimer();
+  const filename = `daymark-backup-${formatTimestamp()}.json`;
+  const ok = await saveTextFile(
+    filename,
+    "application/json;charset=utf-8",
+    JSON.stringify(payload, null, 2)
+  );
+  if (ok) resetAutoBackupTimer();
 }
 
 // ─── Logging Style ───────────────────────────────────────────────────────────
@@ -635,7 +690,8 @@ function booksPerYear() {
 // ─── Auto Backup ──────────────────────────────────────────────────────────────
 
 function autoBackupIfDue() {
-  // Don't run if there's no real data yet
+  // Browsers, especially iPhone Safari/PWAs, block silent file downloads.
+  // So Daymark should remind the user rather than pretending a file was saved.
   if (!allMonthKeys().length) return;
 
   const lastBackup = localStorage.getItem(AUTO_BACKUP_KEY);
@@ -644,20 +700,13 @@ function autoBackupIfDue() {
 
   if (lastBackup && (now - parseInt(lastBackup)) < AUTO_BACKUP_DAYS * dayMs) return;
 
-  // Due — trigger silent download
-  silentExportJSON();
-  localStorage.setItem(AUTO_BACKUP_KEY, String(now));
-  showToast("📦 Weekly backup saved to your Downloads folder", null);
+  showToast("📦 Backup due — tap Export JSON Backup now", null);
 }
 
 function silentExportJSON() {
-  const payload = { version: APP_VERSION, store, meta };
-  const uri = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload));
-  const a = document.createElement("a");
-  a.href = uri;
-  a.download = `daymark-backup-${formatTimestamp()}.json`;
-  // Small delay so it doesn't fight with page load
-  setTimeout(() => a.click(), 1500);
+  // Kept for compatibility with older cached pages. Silent downloads are not
+  // reliable or allowed in modern mobile browsers. Use exportJSON() instead.
+  return false;
 }
 
 function resetAutoBackupTimer() {
@@ -673,7 +722,7 @@ function autoBackupStatus() {
   return `Last auto-backup: ${days} days ago`;
 }
 
-function exportCSV() {
+async function exportCSV() {
   const habits = meta.habits.filter(h=>!h.archived);
   const rows   = [["Date","Habit","Category","Done","Skipped"]];
   allMonthKeys().sort().forEach(mk => {
@@ -690,12 +739,10 @@ function exportCSV() {
     }
   });
   const csv = rows.map(r=>r.map(c=>'"'+String(c).replaceAll('"','""')+'"').join(",")).join("\n");
-  const uri = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-  const a = document.createElement("a");
-  a.href = uri; a.download = `daymark-export-${formatTimestamp()}.csv`; a.click();
+  await saveTextFile(`daymark-export-${formatTimestamp()}.csv`, "text/csv;charset=utf-8", csv);
 }
 
-function exportBooksCSV() {
+async function exportBooksCSV() {
   const books = getBooks();
   if (!books.length) { showToast("No books to export", null); return; }
   const rows = [["Title","Author","Genre","Rating","Status","Start Date","End Date","Days","Notes"]];
@@ -706,9 +753,7 @@ function exportBooksCSV() {
     rows.push([b.title, b.author||"", b.genre||"", rating, status, b.startDate||"", b.endDate||"", days, b.notes||""]);
   });
   const csv = rows.map(r=>r.map(c=>'"'+String(c).replaceAll('"','""')+'"').join(",")).join("\n");
-  const uri = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-  const a = document.createElement("a");
-  a.href = uri; a.download = `daymark-books-${formatTimestamp()}.csv`; a.click();
+  await saveTextFile(`daymark-books-${formatTimestamp()}.csv`, "text/csv;charset=utf-8", csv);
 }
 
 function importJSON(file) {
